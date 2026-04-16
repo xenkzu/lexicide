@@ -1,93 +1,77 @@
-# Typing Knight ⚔️⌨️
+# Lexicide
 
-A high-fidelity, gothic-themed action game built with **Electron**, **Phaser 3**, and **Vite**. The game combines high-speed typing with side-scrolling combat, where your typing performance directly drives the knight's power and speed.
+Lexicide is a high-performance, gothic-themed action game built with Electron, Phaser 3, and Vite. The core mechanic integrates high-speed typing with side-scrolling combat, where performance metrics directly influence gameplay intensity and character power.
 
-## 🕹️ Project Overview
-**Typing Knight** is a rhythmic combat game where the player controls a knight in a dark, atmospheric world. Success is measured by "Normative WPM" (Words Per Minute) and accuracy. As the player types atmospheric/gothic words, the knight automatically strikes enemies, builds combos, and accelerates through the level.
+## Overview
 
----
+Lexicide focuses on rhythmic, high-accuracy typing within a dark, atmospheric environment. The system utilizes a custom typing engine to calculate word-per-minute (WPM) and accuracy metrics in real-time. These metrics drive the player's movement speed, combat effectiveness, and progress through a procedurally scaling level system.
 
-## 🏗️ Technical Stack
-- **Core**: JavaScript (ES6+), HTML5
-- **Engine**: Phaser 3 (Game Engine)
-- **Framework**: Electron (for Desktop distribution)
-- **Build Tool**: Vite (for fast HMR and optimized builds)
-- **State Management**: Reactive `StatsBus` (Global Event Bus)
+## Technical Architecture
 
----
+The application is built on a modern JavaScript stack designed for low-latency input and fluid rendering:
 
-## 📂 File Structure
-```text
-typing-knight/
-├── electron/
-│   ├── main.js             # Electron main process (Window management)
-│   └── preload.js           # Secure bridge between Electron and Web
-├── src/
-│   ├── game/
-│   │   ├── entities/
-│   │   │   ├── Knight.js    # Player entity (Animated, combat logic)
-│   │   │   └── Enemy.js     # Enemy entity (Health bars, death particles)
-│   │   ├── scenes/
-│   │   │   ├── BootScene.js  # Asset generation (Canvas textures)
-│   │   │   └── GameScene.js  # Main gameplay loop & parallax logic
-│   │   ├── systems/
-│   │   │   ├── LevelManager.js # Progression, phases, and scaling
-│   │   │   ├── StatsBus.js     # Global reactive game state
-│   │   │   └── TypingEngine.js # Key interceptor and WPM calculator
-│   │   ├── config.js         # Phaser engine configuration
-│   └── main.js               # Entry point for the web application
-├── package.json              # Scripts and dependencies
-└── index.html                # Main game container
+*   **Engine**: Phaser 3 for canvas-based rendering and game loop management.
+*   **Platform**: Electron for cross-platform desktop distribution.
+*   **Build System**: Vite for optimized hot module replacement (HMR) and production bundling.
+*   **State Management**: A reactive global event bus (StatsBus) that synchronizes the Typing Engine, Entity systems, and UI.
+
+## Core Systems
+
+### Typing Engine
+A specialized input handler that monitors keystrokes to calculate normative WPM and accuracy. It supports dynamic word prompts with real-time visual feedback, including character-level highlighting and error state animations.
+
+### Dynamic Parallax Environment
+A multi-layered parallax system with 5+ layers of depth, featuring programmatically generated assets. The backdrop includes deep space starfields, distant gothic architecture, and foreground silhouettes that scale in velocity based on player performance.
+
+### Combat and Progression
+*   **Entity Mechanics**: Custom animated entities (Knight and Enemies) with state-driven behaviors.
+*   **Boss Encounters**: Periodic high-intensity encounters featuring multi-stage health mechanics and phrase-based typing challenges.
+*   **Scaling Difficulty**: A procedural level manager that increases enemy health, spawn density, and movement velocity as distance increases.
+
+## Installation and Development
+
+Ensure you have Node.js installed on your system before proceeding.
+
+### Setup
+```bash
+npm install
 ```
 
----
+### Development
+Launch the application in development mode with HMR:
+```bash
+npm run electron:dev
+```
 
-## 🚀 Progress Summary
+### Production
+Generate an optimized production bundle:
+```bash
+npm run electron:build
+```
 
-### 1. Core Framework (Completed)
-- [x] Initialized Electron + Vite scaffolding.
-- [x] Configured Phaser 3 for 1280x720 gothic rendering.
-- [x] Implemented a reactive `StatsBus` to decouple UI, Engine, and Entities.
+## Project Structure
 
-### 2. Typing & Mechanics (Completed)
-- [x] **Typing Engine**: Intercepts keystrokes, calculates "Normative WPM", and tracks accuracy.
-- [x] **Word Prompt System**: Displays atmospheric words (e.g., *shadow, hollow, void*) at the bottom with real-time character highlighting (Green for correct, Red flash for error).
-- [x] **Combo System**: Incremental multipliers that unlock enhanced visual effects and multi-target attacks.
+```text
+lexicide/
+├── assets/             # Spritesheets and static media
+├── electron/           # Main and preload processes
+├── src/                # Application source code
+│   ├── game/           # Core game logic
+│   │   ├── entities/   # NPC and Player classes
+│   │   ├── scenes/     # Boot and Gameplay scenes
+│   │   ├── systems/    # Engine, State, and Level management
+│   │   └── config.js   # Phaser configuration
+│   └── main.js         # Entry point
+└── vite.config.js      # Build configuration
+```
 
-### 3. Combat & Level Loop (Completed)
-- [x] **Parallax World**: 3-layer scrolling system creating depth in a dark, atmospheric environment.
-- [x] **Knight Entity**: Features a programmatically generated 6-frame animation system (Idle & Attack) using Canvas textures.
-- [x] **Enemy System**: Procedurally spawned enemies with dynamic health bars that scale in health and speed every 500 units of distance.
-- [x] **Auto-Attack**: The knight attacks the nearest enemy automatically at a rate driven by the user's WPM.
-- [x] **Visual Polish**: 
-    - Screen shake on heavy hits (>20 damage).
-    - Particle bursts on enemy death.
-    - Full-screen color overlays (Red/Amber/Purple) that intensify with Combo.
-    - "Ghost WPM" background text that reacts to combo multipliers.
+## Current Status and Roadmap
 
-### 4. Progression & Difficulty (Completed)
-- [x] **Level Manager**: Tracks `distanceTraveled` and cycles through 5 Phases.
-- [x] **Scaling Difficulty**: Phase 1 through 5 increases enemy health by 20% and spawn rate significantly.
+Lexicide is currently in active development.
 
----
-
-## 🛠️ How to Run
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-2. **Launch Development Mode**:
-   ```bash
-   npm run electron:dev
-   ```
-3. **Build for Production**:
-   ```bash
-   npm run electron:build
-   ```
-
----
-
-## 🗺️ Roadmap
-- [ ] **Prompt 4: Boss Encounters**: Huge specters that appear every 2500 units with multi-stage typing requirements.
-- [ ] **Prompt 5: UI & Meta-progression**: Main menu, post-run stats summary, and unlockable knight tints.
-- [ ] **Prompt 6: Audio Integration**: Dark ambient soundtrack and mechanical "clicky" typing sounds.
+*   [x] Core Typing and Combat Engine
+*   [x] Procedural Atmosphere and Parallax System
+*   [x] Cinematic Boss Encounters
+*   [ ] External Audio Integration
+*   [ ] Persistent Statistics and Meta-progression
+*   [ ] Advanced UI and Main Menu system
