@@ -1,0 +1,430 @@
+import Phaser from 'phaser';
+import TypingEngine from '../systems/TypingEngine';
+import StatsBus from '../systems/StatsBus';
+import Knight from '../entities/Knight';
+import Enemy from '../entities/Enemy';
+import Boss from '../entities/Boss';
+import LevelManager from '../systems/LevelManager';
+
+export default class GameScene extends Phaser.Scene {
+  constructor() {
+    super('GameScene');
+  }
+
+  create() {
+    this.levelManager = new LevelManager(this);
+    TypingEngine.init(this);
+
+    // Persistence Visuals
+    this.setupAtmosphere();
+    this.setupParallaxLayers();
+    this.setupHUD();
+
+    // Groups
+    this.enemies = this.add.group();
+    this.bossGroup = this.add.group();
+
+    // Main Character
+    this.knight = new Knight(this, 200, 640);
+    this.knight.sprite.setDepth(15);
+    this.knightShadow = this.add.ellipse(200, 640, 80, 16, 0x000000, 0.4)
+      .setDepth(11);
+
+    // Spawner
+    this.spawnTimer = this.time.addEvent({
+      delay: this.levelManager.getEnemyConfig().spawnInterval,
+      callback: () => this.spawnEnemy(),
+      loop: true
+    });
+
+    // Boss Event Listeners
+    this.setupBossEventListeners();
+
+    // State
+    this.bossEncounterActive = false;
+    this.speedOverride = 1.0;
+  }
+
+  setupAtmosphere() {
+    // 5E: Persistent Vignette / Combo Overlay
+    this.comboOverlay = this.add.rectangle(640, 360, 1280, 720, 0x1a0000, 0).setDepth(2).setScrollFactor(0);
+
+    this.vignetteOverlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0)
+      .setDepth(100).setScrollFactor(0).setAlpha(0); // Subtle darker tint
+
+    // Persistent atmospheric dust (5E)
+    this.dustParticles = this.add.particles(0, 0, 'enemy_tex', {
+      x: { min: 0, max: 1280 },
+      y: { min: 0, max: 720 },
+      alpha: { min: 0.05, max: 0.15 },
+      scale: { min: 0.1, max: 0.2 },
+      speedY: { min: -10, max: -30 },
+      active: true,
+      quantity: 1,
+      lifespan: 10000,
+      frequency: 500
+    }).setDepth(5).setAlpha(0.3);
+
+    // 5F: Dynamic Speed Lines (Visible at high speed)
+    this.speedLines = this.add.particles(0, 0, 'enemy_tex', {
+      x: 1280,
+      y: { min: 0, max: 720 },
+      alpha: { start: 0.4, end: 0 },
+      scaleX: { min: 4, max: 8 },
+      scaleY: { min: 0.05, max: 0.1 },
+      speedX: { min: -1000, max: -2000 },
+      lifespan: 800,
+      quantity: 0,
+      active: true
+    }).setDepth(21);
+  }
+
+  setupParallaxLayers() {
+    this.bgLayer0 = this.add.tileSprite(640, 360, 1280, 720, 'bg0').setDepth(-10).setScrollFactor(0);
+    this.bgLayer1 = this.add.tileSprite(640, 360, 1280, 720, 'bg1').setDepth(-5).setScrollFactor(0);
+    this.bgLayer2 = this.add.tileSprite(640, 360, 1280, 720, 'bg2').setDepth(0).setScrollFactor(0);
+    this.bgLayer3 = this.add.tileSprite(640, 600, 1280, 250, 'bg3').setDepth(1).setScrollFactor(0);
+    this.bgLayer4 = this.add.tileSprite(640, 360, 1280, 720, 'bg4').setDepth(4).setScrollFactor(0).setAlpha(0.4);
+
+    // Ground line - more subtle
+    this.add.rectangle(640, 620, 1280, 2, 0x333333, 0.5).setOrigin(0.5).setDepth(1);
+  }
+
+  setupHUD() {
+    // Dynamic Word Watermark in Background
+    this.bgWordWatermark = this.add.text(640, 480, '', {
+      fontFamily: 'Bernard MT Condensed',
+      fontSize: '220px',
+      color: '#ffffff'
+    }).setOrigin(0.5, 0.5).setAlpha(0.04).setDepth(1).setScrollFactor(0);
+
+    // 5D: WPM Gothic Label
+    this.wpmLabel = this.add.text(60, 40, 'WPM', { fontFamily: 'serif', fontSize: '18px', color: '#e8d5a3', fontStyle: 'bold' }).setOrigin(0.5).setDepth(110);
+    this.wpmText = this.add.text(60, 80, '0', { fontFamily: 'serif', fontSize: '64px', color: '#e8d5a3' }).setOrigin(0.5).setDepth(110);
+    this.accHud = this.add.text(60, 125, '100%', { fontFamily: 'monospace', fontSize: '16px', color: '#22c55e' }).setOrigin(0.5).setDepth(110);
+
+    // 5D: Combo Top Right
+    this.comboDisplay = this.add.text(1220, 60, '×0', { fontFamily: 'serif', fontSize: '72px', color: '#ffffff' }).setOrigin(1, 0.5).setDepth(110);
+
+    // 5D: Distance Bar (Bottom)
+    this.add.rectangle(640, 715, 1280, 10, 0x000000).setOrigin(0.5).setDepth(110);
+    this.distBarFill = this.add.rectangle(0, 715, 0, 10, 0x6b21a8).setOrigin(0, 0.5).setDepth(110);
+
+    // Word prompt (Central) - Fix 6: More prominent word display
+    this.wordBgPanel = this.add.rectangle(640, 665, 1280, 90, 0x000000, 0.6).setDepth(15);
+    this.wordPrompt = this.add.text(640, 660, '', { fontFamily: 'Bernard MT Condensed', fontSize: '28px', color: '#9ca3af' }).setOrigin(0.5).setDepth(16);
+    this.wordInput = this.add.text(0, 660, '', { fontFamily: 'Bernard MT Condensed', fontSize: '28px', color: '#4ade80' }).setOrigin(0, 0.5).setDepth(17);
+
+    // Fix 6: Pulsing current character
+    this.currentLetterText = this.add.text(0, 660, '', {
+      fontFamily: 'Bernard MT Condensed',
+      fontSize: '28px',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5).setDepth(18);
+
+    this.tweens.add({
+      targets: this.currentLetterText,
+      scale: 1.05,
+      duration: 500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Quad.easeInOut'
+    });
+
+    // Boss HUD Elements (Grouped for cleanup)
+    this.bossHudGroup = this.add.group();
+    this.bossWarningText = this.add.text(640, 250, '⚠ BOSS APPROACHING ⚠', { fontFamily: 'serif', fontSize: '52px', color: '#ff3333', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0).setDepth(110);
+  }
+
+  setupBossEventListeners() {
+    this.events.on('wordComplete', () => {
+      this.knight.performAttack(this.enemies.getChildren());
+    });
+
+    this.events.on('bossApproaching', () => {
+      // cinematic warning
+      this.speedOverride = 0.3;
+      this.bossEncounterActive = true;
+
+      this.tweens.add({
+        targets: this.bossWarningText,
+        alpha: { from: 0, to: 1 },
+        duration: 200,
+        yoyo: true,
+        repeat: 14,
+        onComplete: () => this.bossWarningText.destroy()
+      });
+
+      // Overlay Crimson Tint (Vibrant but transparent)
+      this.tweens.add({
+        targets: this.vignetteOverlay,
+        alpha: 0.3,
+        duration: 2500,
+        onStart: () => { this.vignetteOverlay.setFillStyle(0x4a0000, 1); }
+      });
+    });
+
+    this.events.on('bossSpawn', () => {
+    this.activeBoss = new Boss(this, 1420, 480);
+    this.activeBoss.setDepth(20);
+    this.bossGroup.add(this.activeBoss);
+    this.activeBoss.setTint(0xffffff); // Ensure it's bright initially
+
+      // Create Boss HUD
+      const barBg = this.add.rectangle(640, 25, 600, 24, 0x222222).setScrollFactor(0);
+      this.bossBarFillHUD = this.add.rectangle(340, 25, 600, 24, 0xc0c0ff).setOrigin(0, 0.5).setScrollFactor(0);
+      const bossNameLabel = this.add.text(640, 55, this.activeBoss.name, { fontFamily: 'serif', fontSize: '18px', color: '#ffffff' }).setOrigin(0.5).setScrollFactor(0);
+      this.bossHudGroup.add(barBg);
+      this.bossHudGroup.add(this.bossBarFillHUD);
+      this.bossHudGroup.add(bossNameLabel);
+
+      TypingEngine.enterBossMode();
+    });
+
+    this.events.on('bossStageChange', (stage) => {
+      // 3C: Flash and Shake
+      const flash = this.add.rectangle(640, 360, 1280, 720, this.activeBoss.stageColors[stage], 0).setDepth(200);
+      this.tweens.add({
+        targets: flash,
+        alpha: 0.4,
+        duration: 75,
+        yoyo: true,
+        onComplete: () => flash.destroy()
+      });
+      this.cameras.main.shake(400, 0.025);
+      this.bossBarFillHUD.setFillStyle(this.activeBoss.stageColors[stage]);
+    });
+
+    this.events.on('bossPhraseComplete', () => {
+      if (this.activeBoss) this.activeBoss.takeDamage(100);
+    });
+
+    this.events.on('bossTypingError', () => {
+      // Red flash on word prompt
+      this.wordPrompt.setColor('#ff3333');
+      this.tweens.add({
+        targets: this.wordPrompt,
+        x: '+=10',
+        duration: 50,
+        yoyo: true,
+        repeat: 3,
+        onComplete: () => {
+          this.wordPrompt.setColor('#ffffff');
+          this.wordPrompt.setX(640);
+        }
+      });
+    });
+
+    this.events.on('bossDied', () => {
+      // 3D: High intensity shake and ring particles
+      this.cameras.main.shake(1200, 0.04);
+
+      // Particle ring
+      for (let i = 0; i < 80; i++) {
+        const rad = (i / 80) * Math.PI * 2;
+        const speed = 250 + Math.random() * 150;
+        const p = this.add.circle(this.activeBoss.x, this.activeBoss.y, 4, 0xffffff);
+        this.tweens.add({
+          targets: p,
+          x: p.x + Math.cos(rad) * speed,
+          y: p.y + Math.sin(rad) * speed,
+          scale: 0,
+          alpha: 0,
+          duration: 1800,
+          onComplete: () => p.destroy()
+        });
+      }
+
+      this.time.delayedCall(600, () => {
+        const vText = this.add.text(640, 360, '✦ VANQUISHED ✦', { fontFamily: 'serif', fontSize: '82px', color: '#ffd700', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+        this.tweens.add({
+          targets: vText,
+          alpha: 1,
+          scale: { from: 0.5, to: 1.0 },
+          duration: 500,
+          ease: 'Back.out',
+          onComplete: () => {
+            this.tweens.add({ targets: vText, alpha: 0, y: '-=100', delay: 1500, duration: 1000, onComplete: () => vText.destroy() });
+          }
+        });
+      });
+
+      this.time.delayedCall(2500, () => {
+        this.bossHudGroup.clear(true, true);
+        this.speedOverride = 1.0;
+        this.speedRestoreTween = this.tweens.add({
+          targets: this,
+          speedOverride: 1.0,
+          duration: 1000
+        });
+        this.bossEncounterActive = false;
+        this.levelManager.onBossDied();
+        TypingEngine.exitBossMode();
+
+        // Grant +50 streak bonus
+        StatsBus.set('streak', StatsBus.streak + 50);
+
+        this.tweens.add({ targets: this.vignetteOverlay, alpha: 0, duration: 1000 });
+      });
+    });
+  }
+
+  spawnEnemy() {
+    if (this.bossEncounterActive) return;
+    const config = this.levelManager.getEnemyConfig();
+    const enemy = new Enemy(this, 1400, 566, config);
+    enemy.setDepth(12);
+    this.enemies.add(enemy); 
+    this.spawnTimer.delay = config.spawnInterval;
+  }
+
+  update(time, delta) {
+    const moveSpeed = StatsBus.moveSpeed * this.speedOverride;
+    TypingEngine.update(delta);
+
+    // 1. Parallax Update (Dynamic Speed scaling)
+    const speedRatio = Math.max(1.0, moveSpeed / 160); // 160 is base speed
+    const dynamicMultiplier = 1.0 + (speedRatio - 1.0) * 0.5; // Scale intensity with speed
+    
+    this.bgLayer0.tilePositionX += moveSpeed * 0.005 * dynamicMultiplier * (delta / 1000);
+    this.bgLayer1.tilePositionX += moveSpeed * 0.02 * dynamicMultiplier * (delta / 1000);
+    this.bgLayer2.tilePositionX += moveSpeed * 0.08 * dynamicMultiplier * (delta / 1000);
+    this.bgLayer3.tilePositionX += moveSpeed * 0.22 * dynamicMultiplier * (delta / 1000);
+    this.bgLayer4.tilePositionX += moveSpeed * 1.2 * dynamicMultiplier * (delta / 1000);
+
+    // Speed Lines Intensity
+    const linesIntensity = Math.max(0, (moveSpeed - 220) / 180); // Start showing above 220
+    this.speedLines.setParticleAlpha({ start: linesIntensity * 0.5, end: 0 });
+    this.speedLines.setQuantity(Math.floor(linesIntensity * 3));
+
+    // 2. Systems
+    this.levelManager.update(delta, moveSpeed);
+    this.knight.update(delta);
+
+    // Combat
+    if (this.activeBoss && this.activeBoss.isAlive) {
+      this.activeBoss.update(time, delta);
+    }
+    // (Enemy-knight overlap or damage logic)
+
+    this.enemies.getChildren().forEach(e => {
+      e.update(delta);
+      if (e.x < -100) e.destroy();
+    });
+
+    this.updateComboEffects();
+    this.updateHUD(time);
+
+    // Sync Shadow
+    if (this.knightShadow) {
+      this.knightShadow.setPosition(this.knight.x, 624);
+    }
+  }
+
+  updateHUD(time) {
+    // Stats
+    this.wpmText.setText(StatsBus.wpm);
+    
+    const word = StatsBus.currentWord || '';
+    this.bgWordWatermark.setText(word.toUpperCase()); // Background Word Update
+
+    this.accHud.setText(`${StatsBus.accuracy}%`);
+    this.accHud.setColor(StatsBus.accuracy > 90 ? '#22c55e' : (StatsBus.accuracy > 75 ? '#f59e0b' : '#ff3333'));
+
+    this.comboDisplay.setText(`×${StatsBus.combo}`);
+    if (StatsBus.combo >= 5) {
+      this.comboDisplay.setScale(1.0 + Math.sin(time / 200) * 0.1);
+      this.comboDisplay.setTint(0xffd700);
+    } else {
+      this.comboDisplay.setScale(1).clearTint();
+    }
+
+    // Distance Bar
+    const progress = (this.levelManager.distanceTraveled % 2500) / 2500;
+    this.distBarFill.width = progress * 1280;
+
+    // Word prompt (Fix 6: Dynamic visual feedback)
+    const input = StatsBus.inputText || '';
+
+    this.wordPrompt.setText(word);
+    this.wordInput.setText(input);
+
+    // Pulse current character logic (Fix 6)
+    const promptWidth = this.wordPrompt.width;
+    const startX = 640 - (promptWidth / 2);
+    this.wordInput.setX(startX);
+
+    if (word && input.length < word.length) {
+      const currentLetter = word[input.length];
+      this.currentLetterText.setText(currentLetter);
+
+      // Optimize: use wordInput's width to find the current position
+      this.currentLetterText.setX(startX + this.wordInput.width);
+      this.currentLetterText.setVisible(true);
+    } else {
+      this.currentLetterText.setVisible(false);
+    }
+
+    // Word completion flash
+    if (this._lastWord !== word) {
+      if (this._lastWord) {
+        // Flash yellow on completion
+        const flashColor = this.wordPrompt.style.color;
+        this.wordPrompt.setColor('#fbbf24');
+        this.time.delayedCall(150, () => this.wordPrompt.setColor('#9ca3af'));
+      }
+      this._lastWord = word;
+    }
+
+    // Boss Bar HUD
+    if (this.activeBoss && this.activeBoss.isAlive) {
+      this.bossBarFillHUD.width = (this.activeBoss.health / this.activeBoss.maxHealth) * 600;
+    }
+
+    // Error Feedback (Fix 6: Bright red flash)
+    if (StatsBus.errorFlash) {
+      this.wordPrompt.setColor('#ef4444');
+      this.time.delayedCall(200, () => this.wordPrompt.setColor('#9ca3af'));
+      StatsBus.set('errorFlash', false);
+    }
+  }
+
+  updateComboEffects() {
+    let targetAlpha = 0;
+    const multiplier = StatsBus.comboMultiplier;
+
+    if (multiplier >= 3.0) targetAlpha = 0.09;
+    else if (multiplier >= 2.0) targetAlpha = 0.06;
+    else if (multiplier >= 1.4) targetAlpha = 0.04;
+
+    if (this.comboOverlay.alpha !== targetAlpha) {
+      this.tweens.add({
+        targets: this.comboOverlay,
+        alpha: targetAlpha,
+        duration: 400,
+        ease: 'Sine.easeInOut'
+      });
+    }
+  }
+
+  showDamageNumber(x, y, amount, multiplier) {
+    const color = multiplier >= 3 ? '#ef4444' : multiplier >= 2 ? '#f97316' : '#ffffff';
+    const txt = this.add.text(x, y - 20, Math.floor(amount), {
+      fontSize: '24px',
+      fontStyle: 'bold',
+      color,
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setDepth(20).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: txt,
+      y: y - 80,
+      alpha: 0,
+      duration: 600,
+      ease: 'Cubic.easeOut',
+      onComplete: () => txt.destroy()
+    });
+  }
+}

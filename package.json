@@ -1,0 +1,39 @@
+{
+  "name": "lexicide",
+  "version": "0.1.0",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "taskkill /F /IM \"LEXICIDE.exe\" /T 2>nul || (exit 0) && powershell -Command \"Remove-Item -Recurse -Force dist-vite, release -ErrorAction SilentlyContinue\"",
+    "prebuild": "npm run clean",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "vite": "^5.1.4",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.lexicide.app",
+    "productName": "LEXICIDE",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-vite/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable"
+    }
+  }
+}
