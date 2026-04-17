@@ -46,6 +46,26 @@ export default class GameScene extends Phaser.Scene {
     this.bossEncounterActive = false;
     this.speedOverride = 1.0;
     this.bossHitsReceived = 0;
+    this.isGameOver = false;
+
+    this.setupGameOverUI();
+  }
+
+  setupGameOverUI() {
+    this.gameOverGroup = this.add.group();
+    
+    const bg = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7)
+      .setDepth(1000).setScrollFactor(0).setVisible(false);
+    
+    const title = this.add.text(640, 320, 'GAME OVER', { 
+      fontFamily: 'serif', fontSize: '96px', color: '#ff3333', fontStyle: 'bold' 
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
+
+    const restartTxt = this.add.text(640, 420, 'Press SPACE to Restart', { 
+      fontFamily: 'serif', fontSize: '24px', color: '#ffffff' 
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
+
+    this.gameOverGroup.addMultiple([bg, title, restartTxt]);
   }
 
   setupAtmosphere() {
@@ -143,6 +163,18 @@ export default class GameScene extends Phaser.Scene {
   setupBossEventListeners() {
     this.events.on('wordComplete', () => {
       this.knight.performAttack(this.enemies.getChildren());
+    });
+
+    this.events.on('gameover', () => {
+      this.isGameOver = true;
+      this.speedOverride = 0;
+      this.gameOverGroup.getChildren().forEach(c => c.setVisible(true));
+      
+      this.tweens.add({
+        targets: this.gameOverGroup.getChildren(),
+        alpha: { from: 0, to: 1 },
+        duration: 500
+      });
     });
 
     this.events.on('bossApproaching', () => {
@@ -284,6 +316,14 @@ export default class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (this.isGameOver) {
+      const spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+      if (spaceKey.isDown) {
+        window.location.reload();
+      }
+      return;
+    }
+
     const moveSpeed = StatsBus.moveSpeed * this.speedOverride;
     TypingEngine.update(delta);
 
@@ -300,8 +340,8 @@ export default class GameScene extends Phaser.Scene {
     this.bgLayer3.tilePositionX += effectiveMoveSpeed * 0.22 * dynamicMultiplier * (delta / 1000);
     this.bgLayer4.tilePositionX += effectiveMoveSpeed * 1.2 * dynamicMultiplier * (delta / 1000);
 
-    // Speed Lines Intensity (Only while running)
-    const linesIntensity = isKnightRunning ? Math.max(0, (moveSpeed - 220) / 180) : 0;
+    // Speed Lines Intensity (Only while not idle)
+    const linesIntensity = !isKnightIdle ? Math.max(0, (moveSpeed - 220) / 180) : 0;
     this.speedLines.setParticleAlpha({ start: linesIntensity * 0.5, end: 0 });
     this.speedLines.setQuantity(Math.floor(linesIntensity * 3));
 

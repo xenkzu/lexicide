@@ -109,10 +109,8 @@ export default class Knight {
 
     this.scene.cameras.main.shake(500, 0.05);
 
-    // Stop gameplay by emitting an event or directly reloading
-    this.scene.time.delayedCall(1500, () => {
-        window.location.reload();
-    });
+    // Stop gameplay by emitting an event
+    this.scene.events.emit('gameover');
   }
 
   performAttack(enemyList, bonusDamage = null) {

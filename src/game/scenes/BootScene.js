@@ -73,13 +73,6 @@ export default class BootScene extends Phaser.Scene {
       repeat: 0
     });
 
-    this.anims.create({
-      key: 'enemy_death',
-      frames: this.anims.generateFrameNumbers('enemy_death', { start: 0, end: 8 }),
-      frameRate: 12,
-      repeat: 0
-    });
-
     this.scene.start('GameScene');
   }
 
