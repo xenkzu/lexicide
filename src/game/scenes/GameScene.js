@@ -47,13 +47,14 @@ export default class GameScene extends Phaser.Scene {
     this.speedOverride = 1.0;
     this.bossHitsReceived = 0;
     this.isGameOver = false;
+    this.score = 0;
 
     this.setupGameOverUI();
     this.setupAudio();
     this.buildSettingsOverlay();
     
-    // Settings Button (HUD)
-    const settingsBtn = this.add.container(1240, 40).setDepth(1100);
+    // Settings Button — bottom right
+    const settingsBtn = this.add.container(1240, 682).setDepth(1100);
     const sBg = this.add.circle(0, 0, 18, 0x000000, 0.6).setStrokeStyle(2, 0x9b7dff);
     const sLabel = this.add.text(0, 0, '\u2699', { fontSize: '20px', color: '#ffffff' }).setOrigin(0.5);
     settingsBtn.add([sBg, sLabel]);
@@ -170,7 +171,7 @@ export default class GameScene extends Phaser.Scene {
     const bg = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7)
       .setDepth(1000).setScrollFactor(0).setVisible(false);
     
-    const title = this.add.text(640, 320, 'GAME OVER', { 
+    const title = this.add.text(640, 320, 'SKILL ISSUE', { 
       fontFamily: "'Press Start 2P'", fontSize: '48px', color: '#ff3333', fontStyle: 'bold' 
     }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
 
@@ -262,8 +263,13 @@ export default class GameScene extends Phaser.Scene {
     this.wpmText = this.add.text(60, 80, '0', { fontFamily: "'Press Start 2P'", fontSize: '32px', color: '#e8d5a3' }).setOrigin(0.5).setDepth(110);
     this.accHud = this.add.text(60, 125, '100%', { fontFamily: "'Press Start 2P'", fontSize: '9px', color: '#22c55e' }).setOrigin(0.5).setDepth(110);
 
-    // 5D: Combo Top Right
-    this.comboDisplay = this.add.text(1220, 60, '×0', { fontFamily: "'Press Start 2P'", fontSize: '32px', color: '#ffffff' }).setOrigin(1, 0.5).setDepth(110);
+    // Score — top right, large
+    this.add.text(1255, 15, 'SCORE', { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#fbbf24' }).setOrigin(1, 0.5).setDepth(110);
+    this.scoreDisplay = this.add.text(1255, 45, '0', { fontFamily: "'Press Start 2P'", fontSize: '28px', color: '#fbbf24' }).setOrigin(1, 0.5).setDepth(110);
+
+    // Combo — below score
+    this.add.text(1255, 78, 'COMBO', { fontFamily: "'Press Start 2P'", fontSize: '9px', color: '#a78bfa' }).setOrigin(1, 0.5).setDepth(110);
+    this.comboDisplay = this.add.text(1255, 105, '×0', { fontFamily: "'Press Start 2P'", fontSize: '22px', color: '#ffffff' }).setOrigin(1, 0.5).setDepth(110);
 
     // 5D: Distance Bar (Bottom)
     this.add.rectangle(640, 715, 1280, 10, 0x000000).setOrigin(0.5).setDepth(110);
@@ -300,6 +306,8 @@ export default class GameScene extends Phaser.Scene {
     // relay enemy kills to level manager for boss-spawn counter
     this.events.on('enemyKilled', () => {
       this.levelManager.onEnemyKilled();
+      this.score += 1;
+      this._flashScore();
     });
 
     this.events.on('wordComplete', () => {
@@ -432,7 +440,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.events.on('bossSpawn', () => {
-    this.activeBoss = new Boss(this, 1420, 480);
+    this.activeBoss = new Boss(this, 1420, 640);
     this.activeBoss.setDepth(20);
     this.bossGroup.add(this.activeBoss);
     this.activeBoss.setTint(0xffffff); // Ensure it's bright initially
@@ -484,6 +492,8 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.events.on('bossDied', () => {
+      this.score += 10;
+      this._flashScore();
       // 3D: High intensity shake and ring particles
       this.cameras.main.shake(1200, 0.04);
 
@@ -589,9 +599,10 @@ export default class GameScene extends Phaser.Scene {
       this.activeBoss.update(time, delta);
       
       // Boss collision with knight
-      if (!this.knight.isDead && Math.abs(this.activeBoss.x - this.knight.x) < 80) {
+      if (!this.knight.isDead && !this.activeBoss.isAttacking && Math.abs(this.activeBoss.x - this.knight.x) < 80) {
         this.knight.takeDamage(34); // Deal damage
-        this.activeBoss.x += 150; // Knockback boss to prevent continuous damage
+        this.activeBoss.attack();   // Play attack animation
+        
         StatsBus.set('combo', 0);
         StatsBus.set('comboMultiplier', 1.0);
         StatsBus.set('errorFlash', true);
@@ -623,24 +634,35 @@ export default class GameScene extends Phaser.Scene {
             }
         });
 
-        // Check collision with boss
-        if (this.activeBoss && this.activeBoss.isAlive && this.physics.overlap(p, this.activeBoss)) {
-            p.handleHit(this.activeBoss);
-            
-            // Increment boss specific hit counter
-            this.bossHitsReceived++;
+        // Check collision with boss — manual bounds check because physics body
+        // doesn't reliably match a scaled sprite with a non-default origin.
+        // Boss: origin (0.5, 1.0), scale 3, frame 80x80 → visual 240x240.
+        if (this.activeBoss && this.activeBoss.isAlive) {
+            const bossLeft   = this.activeBoss.x - 120;
+            const bossRight  = this.activeBoss.x + 120;
+            const bossTop    = this.activeBoss.y - 240;
+            const bossBottom = this.activeBoss.y;
+            const bossHit = p.x >= bossLeft && p.x <= bossRight &&
+                            p.y >= bossTop  && p.y <= bossBottom;
 
-            // Smooth Knockback Tween
-            this.tweens.add({
-                targets: this.activeBoss,
-                x: this.activeBoss.x + 80,
-                duration: 200,
-                ease: 'Cubic.easeOut'
-            });
+            if (bossHit) {
+                p.handleHit(this.activeBoss);
 
-            // Every 3 hits, spawn an internal enemy (Groq) for chaos
-            if (this.bossHitsReceived % 3 === 0) {
-                this.spawnEnemy(true); 
+                // Increment boss specific hit counter
+                this.bossHitsReceived++;
+
+                // Smooth Knockback Tween
+                this.tweens.add({
+                    targets: this.activeBoss,
+                    x: this.activeBoss.x + 80,
+                    duration: 200,
+                    ease: 'Cubic.easeOut'
+                });
+
+                // Every 3 hits, spawn an internal enemy (Groq) for chaos
+                if (this.bossHitsReceived % 3 === 0) {
+                    this.spawnEnemy(true); 
+                }
             }
         }
     });
@@ -655,6 +677,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   updateHUD(time) {
+    // Score
+    this.scoreDisplay.setText(this.score);
+
     // Stats
     this.wpmText.setText(StatsBus.wpm);
     
@@ -757,6 +782,20 @@ export default class GameScene extends Phaser.Scene {
       duration: 600,
       ease: 'Cubic.easeOut',
       onComplete: () => txt.destroy()
+    });
+  }
+
+  _flashScore() {
+    if (!this.scoreDisplay) return;
+    this.tweens.add({
+      targets: this.scoreDisplay,
+      scale: { from: 1.5, to: 1 },
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
+    this.scoreDisplay.setColor('#ffffff');
+    this.time.delayedCall(300, () => {
+      if (this.scoreDisplay) this.scoreDisplay.setColor('#fbbf24');
     });
   }
 }

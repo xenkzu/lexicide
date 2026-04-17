@@ -31,6 +31,21 @@ export default class BootScene extends Phaser.Scene {
       frameHeight: 68
     });
 
+    this.load.spritesheet('boss_walk', 'assets/sprites/final_gork_walking.png', {
+      frameWidth: 80,
+      frameHeight: 80
+    });
+
+    this.load.spritesheet('boss_death', 'assets/sprites/final_gork_death.png', {
+      frameWidth: 80,
+      frameHeight: 80
+    });
+
+    this.load.spritesheet('boss_attack', 'assets/sprites/finalboss_attack.png', {
+      frameWidth: 80,
+      frameHeight: 80
+    });
+
     // Audio
     this.load.audio('launch_sfx', 'assets/audio/launch.mp3');
     this.load.audio('boss_hit_sfx', 'assets/audio/makabhosda_aag.mp3');
@@ -77,6 +92,27 @@ export default class BootScene extends Phaser.Scene {
       key: 'enemy_death',
       frames: this.anims.generateFrameNumbers('enemy_death', { start: 0, end: 8 }),
       frameRate: 12,
+      repeat: 0
+    });
+
+    this.anims.create({
+      key: 'boss_walk',
+      frames: this.anims.generateFrameNumbers('boss_walk', { start: 0, end: 7 }),
+      frameRate: 10,
+      repeat: -1
+    });
+
+    this.anims.create({
+      key: 'boss_death',
+      frames: this.anims.generateFrameNumbers('boss_death', { start: 0, end: 19 }),
+      frameRate: 12,
+      repeat: 0
+    });
+
+    this.anims.create({
+      key: 'boss_attack',
+      frames: this.anims.generateFrameNumbers('boss_attack', { start: 0, end: 11 }),
+      frameRate: 16,
       repeat: 0
     });
 
