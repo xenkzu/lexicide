@@ -14,6 +14,7 @@ export default class LevelManager {
 
     // Spawn cap — only spawn as many enemies as needed to trigger boss
     this.spawnedThisRound = 0;
+    this.totalKills = 0;
   }
 
   /** Returns the kill threshold for the current round */
@@ -34,6 +35,7 @@ export default class LevelManager {
 
   /** Called by GameScene whenever a normal enemy dies */
   onEnemyKilled() {
+    this.totalKills++;
     if (this.bossActive || this.bossJustDied || this._bossQueued) return;
 
     this.killCount++;

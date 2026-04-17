@@ -1,16 +1,18 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
+
+let mainWindow;
 
 function createWindow() {
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 720,
     title: 'LEXICIDE',
-    resizable: false,
-    fullscreenable: false,
-    useContentSize: true, // Ensures the 1280x720 is the drawing area
+    resizable: true,
+    fullscreenable: true,
+    useContentSize: true,
     backgroundColor: '#0a0a0f',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -23,11 +25,23 @@ function createWindow() {
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
-    // mainWindow.webContents.openDevTools(); // Optional: open dev tools in dev mode
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist-vite/index.html'));
   }
 }
+
+ipcMain.handle('toggle-fullscreen', () => {
+  if (mainWindow) {
+    const next = !mainWindow.isFullScreen();
+    mainWindow.setFullScreen(next);
+    return next;
+  }
+  return false;
+});
+
+ipcMain.handle('is-fullscreen', () => {
+  return mainWindow ? mainWindow.isFullScreen() : false;
+});
 
 app.whenReady().then(() => {
   createWindow();

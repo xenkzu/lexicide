@@ -21,6 +21,11 @@ export default class BootScene extends Phaser.Scene {
       frameHeight: 68
     });
 
+    this.load.spritesheet('knight_death', 'assets/sprites/knight_death.png', {
+      frameWidth: 68,
+      frameHeight: 68
+    });
+
     this.load.spritesheet('enemy_gork', 'assets/sprites/gork_walking.png', {
       frameWidth: 68,
       frameHeight: 68
@@ -52,6 +57,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.audio('gameplay_music', 'assets/audio/gameplay_music.mp3');
     this.load.audio('menu_music', 'assets/audio/loop background.mp3');
     this.load.audio('impact_sfx', 'assets/audio/impact.mp3');
+    this.load.audio('knight_damage', 'assets/audio/faaah.mp3');
   }
 
   create() {
@@ -78,6 +84,13 @@ export default class BootScene extends Phaser.Scene {
       key: 'knight_fireball',
       frames: this.anims.generateFrameNumbers('knight_fireball', { start: 0, end: 5 }),
       frameRate: 14,
+      repeat: 0
+    });
+
+    this.anims.create({
+      key: 'knight_death',
+      frames: this.anims.generateFrameNumbers('knight_death', { start: 0, end: 11 }),
+      frameRate: 10,
       repeat: 0
     });
 

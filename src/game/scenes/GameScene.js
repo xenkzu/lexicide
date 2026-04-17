@@ -120,15 +120,16 @@ export default class GameScene extends Phaser.Scene {
       sValue.setText(`${Math.round(vol * 100)}%`);
     });
 
-    // Mute Global
-    const muteLabel = this.add.text(-170, 15, 'GLOBAL MUTE', { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#9b7dff' });
-    const muteToggle = this.add.text(40, 15, this.sound.mute ? '[ ON ]' : '[ OFF ]', { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#ffffff' })
+    // Fullscreen
+    const fsLabel = this.add.text(-170, 15, 'FULLSCREEN', { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#9b7dff' });
+    const fsToggle = this.add.text(40, 15, this.scale.isFullscreen ? '[ ON ]' : '[ OFF ]', { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#ffffff' })
       .setInteractive({ useHandCursor: true });
     
-    muteToggle.on('pointerup', () => {
-      this.sound.mute = !this.sound.mute;
-      muteToggle.setText(this.sound.mute ? '[ ON ]' : '[ OFF ]');
-      StatsBus.set('muted', this.sound.mute);
+    fsToggle.on('pointerup', async () => {
+      const isNowFullscreen = await window.electronAPI?.toggleFullscreen();
+      if (fsToggle && fsToggle.active) {
+        fsToggle.setText(isNowFullscreen ? '[ ON ]' : '[ OFF ]');
+      }
     });
 
     // Return to Menu
@@ -147,7 +148,7 @@ export default class GameScene extends Phaser.Scene {
       backdrop, panel, title, divider,
       mLabel, mTrack, mHandle, mValue,
       sfxLabel, sTrack, sHandle, sValue,
-      muteLabel, muteToggle, returnBtn, closeBtn
+      fsLabel, fsToggle, returnBtn, closeBtn
     ]);
   }
 
@@ -160,7 +161,7 @@ export default class GameScene extends Phaser.Scene {
     this.bgm.play();
     this.tweens.add({
       targets: this.bgm,
-      volume: 0.7,
+      volume: StatsBus.musicVol,
       duration: 3000
     });
   }
@@ -334,10 +335,10 @@ export default class GameScene extends Phaser.Scene {
       const newDeathCount = StatsBus.deathCount + 1;
       StatsBus.set('deathCount', newDeathCount);
 
-      // Best WPM highscore
-      const currentBest = parseInt(localStorage.getItem('lexicide_best_wpm') || '0');
-      if (StatsBus.wpm > currentBest) {
-        localStorage.setItem('lexicide_best_wpm', StatsBus.wpm.toString());
+      // Best Score highscore
+      const savedBestScore = parseInt(localStorage.getItem('lexicide_best_score_v2') || '0');
+      if (StatsBus.score > savedBestScore) {
+        localStorage.setItem('lexicide_best_score_v2', StatsBus.score.toString());
       }
 
       const deathMessages = [
@@ -651,11 +652,11 @@ export default class GameScene extends Phaser.Scene {
                 // Increment boss specific hit counter
                 this.bossHitsReceived++;
 
-                // Smooth Knockback Tween
+                // Subtle Knockback Tween (boss feels heavy)
                 this.tweens.add({
                     targets: this.activeBoss,
-                    x: this.activeBoss.x + 80,
-                    duration: 200,
+                    x: this.activeBoss.x + 12,
+                    duration: 350,
                     ease: 'Cubic.easeOut'
                 });
 
@@ -700,6 +701,9 @@ export default class GameScene extends Phaser.Scene {
     // Distance Bar
     const progress = (this.levelManager.distanceTraveled % 2500) / 2500;
     this.distBarFill.width = progress * 1280;
+
+    // Update Score in StatsBus
+    StatsBus.set('score', this.levelManager.totalKills + (this.levelManager.bossesDefeated * 5));
 
     // Word prompt (Fix 6: Dynamic visual feedback)
     const input = StatsBus.inputText || '';

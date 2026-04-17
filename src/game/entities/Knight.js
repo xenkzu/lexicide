@@ -81,6 +81,9 @@ export default class Knight {
     this.health -= amount;
     this.updateHealthBar();
 
+    // Play damage sound
+    this.scene.sound.play('knight_damage', { volume: StatsBus.sfxVol });
+
     // Flash red
     this.scene.tweens.add({
       targets: this.sprite,
@@ -100,8 +103,24 @@ export default class Knight {
   }
 
   die() {
+    if (this.isDead) return;
     this.isDead = true;
-    this.sprite.setTint(0xff0000);
+
+    // Play death animation
+    this.sprite.play('knight_death');
+
+    // Knockback effect (move back a little during the animation)
+    this.scene.tweens.add({
+      targets: this,
+      x: this.x - 120,
+      duration: 1200,
+      ease: 'Cubic.easeOut',
+      onUpdate: () => {
+          // Sync remaining visuals while tweening
+          this.sprite.setX(this.x);
+      }
+    });
+
     // Remove health bar
     this.hpBorder.destroy();
     this.hpBg.destroy();

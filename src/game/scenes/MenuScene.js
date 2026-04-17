@@ -27,7 +27,7 @@ export default class MenuScene extends Phaser.Scene {
     this.buildScanlines();
     this.setupKeyboard();
 
-    if (!StatsBus.muted) {
+    if (!StatsBus.muted && !StatsBus.introPlayed) {
       this.sound.play('launch_sfx', { volume: StatsBus.sfxVol });
       this.menuMusic = this.sound.add('menu_music', { loop: true, volume: 0 });
       this.menuMusic.play();
@@ -36,6 +36,10 @@ export default class MenuScene extends Phaser.Scene {
         volume: StatsBus.musicVol,
         duration: 3000
       });
+    } else if (!StatsBus.muted) {
+       // Just start music normally if no intro
+       this.menuMusic = this.sound.add('menu_music', { loop: true, volume: StatsBus.musicVol });
+       this.menuMusic.play();
     }
   }
 
@@ -152,12 +156,15 @@ export default class MenuScene extends Phaser.Scene {
     localStorage.setItem('lexicide_last_tagline', pickedTagline);
     const finalTaglineTxt = pickedTagline.toUpperCase();
 
+    const playIntro = !StatsBus.introPlayed;
+    const initialScale = playIntro ? 0 : 1;
+
     // Drop shadow layer
     const shadow = this.add.text(643, 203, 'LEXICIDE', {
       fontFamily,
       fontSize: '72px',
       color: '#4b0082'
-    }).setOrigin(0.5).setDepth(9).setScale(0);
+    }).setOrigin(0.5).setDepth(9).setScale(initialScale);
 
     // Bloom glow layers
     const blooms = [];
@@ -171,7 +178,7 @@ export default class MenuScene extends Phaser.Scene {
         fontFamily,
         fontSize: '72px',
         color: '#e0d0ff'
-      }).setOrigin(0.5).setDepth(9).setAlpha(alpha).setScale(0);
+      }).setOrigin(0.5).setDepth(9).setAlpha(alpha).setScale(initialScale === 0 ? 0 : scale);
       
       blooms.push({ obj: bloom, targetScale: scale });
 
@@ -190,45 +197,59 @@ export default class MenuScene extends Phaser.Scene {
       fontFamily,
       fontSize: '72px',
       color: '#e0d0ff'
-    }).setOrigin(0.5).setDepth(10).setScale(0);
+    }).setOrigin(0.5).setDepth(10).setScale(initialScale);
 
-    // 1. Final Main Title Entry (Now First)
-    const allTitleObjs = [shadow, titleText, ...blooms.map(b => b.obj)];
-    this.tweens.add({
-      targets: allTitleObjs,
-      scale: 1,
-      duration: 800,
-      delay: 400,
-      ease: 'Cubic.easeOut',
-      onComplete: () => {
-        blooms.forEach(b => b.obj.setScale(b.targetScale));
-        this.tweens.add({
-          targets: titleText,
-          y: { from: 200, to: 194 },
-          duration: 2500,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut'
-        });
-      }
-    });
-
-    // 2. Cinematic Ghost Trails (Follow after main title)
-    const numTrails = 5;
-    for (let i = 0; i < numTrails; i++) {
-      const trail = this.add.text(640, 200, 'LEXICIDE', {
-        fontFamily, fontSize: '72px', color: '#e0d0ff'
-      }).setOrigin(0.5).setDepth(8).setScale(0).setAlpha(0.6 - (i * 0.12));
-
+    if (playIntro) {
+      // 1. Final Main Title Entry (Now First)
+      const allTitleObjs = [shadow, titleText, ...blooms.map(b => b.obj)];
       this.tweens.add({
-        targets: trail,
+        targets: allTitleObjs,
         scale: 1,
         duration: 800,
-        delay: 400 + ((i + 1) * 250), // Each shifts 0.25s from previous (Main title is index 0 essentially)
+        delay: 400,
         ease: 'Cubic.easeOut',
         onComplete: () => {
-          this.tweens.add({ targets: trail, alpha: 0, duration: 400, onComplete: () => trail.destroy() });
+          blooms.forEach(b => b.obj.setScale(b.targetScale));
+          this.tweens.add({
+            targets: titleText,
+            y: { from: 200, to: 194 },
+            duration: 2500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
         }
+      });
+
+      // 2. Cinematic Ghost Trails (Follow after main title)
+      const numTrails = 5;
+      for (let i = 0; i < numTrails; i++) {
+        const trail = this.add.text(640, 200, 'LEXICIDE', {
+          fontFamily, fontSize: '72px', color: '#e0d0ff'
+        }).setOrigin(0.5).setDepth(8).setScale(0).setAlpha(0.6 - (i * 0.12));
+
+        this.tweens.add({
+          targets: trail,
+          scale: 1,
+          duration: 800,
+          delay: 400 + ((i + 1) * 250),
+          ease: 'Cubic.easeOut',
+          onComplete: () => {
+            this.tweens.add({ targets: trail, alpha: 0, duration: 400, onComplete: () => trail.destroy() });
+          }
+        });
+      }
+
+      StatsBus.introPlayed = true;
+    } else {
+      // Skip Intro Logic
+      this.tweens.add({
+        targets: titleText,
+        y: { from: 200, to: 194 },
+        duration: 2500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
       });
     }
 
@@ -237,14 +258,16 @@ export default class MenuScene extends Phaser.Scene {
       fontFamily,
       fontSize: '16px',
       color: '#9b7dff'
-    }).setOrigin(0.5).setDepth(10).setAlpha(0).setScale(0.8);
+    }).setOrigin(0.5).setDepth(10).setAlpha(playIntro ? 0 : 1).setScale(playIntro ? 0.8 : 1);
 
+    const taglineDelay = playIntro ? (400 + (5 * 250) + 1000) : 0;
+    
     this.tweens.add({
       targets: subtitle,
       alpha: 1,
       scale: 1,
-      delay: 400 + (numTrails * 250) + 1000,
-      duration: 400,
+      delay: taglineDelay,
+      duration: playIntro ? 400 : 1,
       ease: 'Back.easeOut',
       onComplete: () => {
         this.tweens.add({
@@ -532,16 +555,23 @@ export default class MenuScene extends Phaser.Scene {
       sValue.setText(`${Math.round(vol * 100)}%`);
     });
 
-    const resLabel = this.add.text(-170, 15, 'RESOLUTION', {
+    const fsLabel = this.add.text(-170, 15, 'FULLSCREEN', {
       fontFamily: "'Press Start 2P'",
       fontSize: '10px',
       color: '#9b7dff'
     });
 
-    const resValue = this.add.text(-170, 40, '1280 x 720', {
+    const fsValue = this.add.text(40, 15, this.scale.isFullscreen ? '[ ON ]' : '[ OFF ]', {
       fontFamily: "'Press Start 2P'",
       fontSize: '10px',
       color: '#ffffff'
+    }).setInteractive({ useHandCursor: true });
+
+    fsValue.on('pointerup', async () => {
+       const isNowFullscreen = await window.electronAPI?.toggleFullscreen();
+       if (fsValue && fsValue.active) {
+         fsValue.setText(isNowFullscreen ? '[ ON ]' : '[ OFF ]');
+       }
     });
 
     const qualLabel = this.add.text(-170, 85, 'PIXEL ART MODE', {
@@ -570,7 +600,7 @@ export default class MenuScene extends Phaser.Scene {
       backdrop, panel, title, divider,
       musicLabel, mTrack, mHandle, mValue,
       sfxLabel, sTrack, sHandle, sValue,
-      resLabel, resValue,
+      fsLabel, fsValue,
       qualLabel, qualValue,
       closeBtn
     ]);
@@ -673,10 +703,10 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   buildHighscore() {
-    const bestWpm = localStorage.getItem('lexicide_best_wpm') || '0';
+    const bestScore = localStorage.getItem('lexicide_best_score_v2') || '0';
     const totalDeaths = localStorage.getItem('lexicide_deaths') || '0';
 
-    this.add.text(640, 470, `PERSONAL BEST: ${bestWpm} WPM`, {
+    this.add.text(640, 470, `HIGHEST SCORE: ${bestScore} PTS`, {
       fontFamily: "'Press Start 2P'", fontSize: '11px', color: '#4ade80'
     }).setOrigin(0.5).setDepth(10);
 

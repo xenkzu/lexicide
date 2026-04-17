@@ -13,9 +13,11 @@ const StatsBus = {
   bossHealth: 100,
   bossMaxHealth: 100,
   bossName: '',
+  score: 0,
   deathCount: parseInt(localStorage.getItem('lexicide_deaths') || '0'),
   musicVol: parseFloat(localStorage.getItem('lexicide_music_vol') || '0.7'),
   sfxVol: parseFloat(localStorage.getItem('lexicide_sfx_vol') || '0.7'),
+  introPlayed: false,
   listeners: {},
 
   set(key, value) {

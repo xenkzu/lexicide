@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import BootScene from './scenes/BootScene';
 import MenuScene from './scenes/MenuScene';
 import GameScene from './scenes/GameScene';
@@ -9,6 +10,12 @@ export default {
   parent: 'game-container',
   backgroundColor: '#0a0a0f',
   resolution: window.devicePixelRatio || 1,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: 1280,
+    height: 720,
+  },
   render: {
     antialias: false,
     pixelArt: false,
