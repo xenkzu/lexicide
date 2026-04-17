@@ -58,11 +58,11 @@ export default class GameScene extends Phaser.Scene {
       .setDepth(1000).setScrollFactor(0).setVisible(false);
     
     const title = this.add.text(640, 320, 'GAME OVER', { 
-      fontFamily: 'serif', fontSize: '96px', color: '#ff3333', fontStyle: 'bold' 
+      fontFamily: "'Press Start 2P'", fontSize: '48px', color: '#ff3333', fontStyle: 'bold' 
     }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
 
     const restartTxt = this.add.text(640, 420, 'Press SPACE to Restart', { 
-      fontFamily: 'serif', fontSize: '24px', color: '#ffffff' 
+      fontFamily: "'Press Start 2P'", fontSize: '13px', color: '#ffffff' 
     }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
 
     this.gameOverGroup.addMultiple([bg, title, restartTxt]);
@@ -116,18 +116,18 @@ export default class GameScene extends Phaser.Scene {
   setupHUD() {
     // Dynamic Word Watermark in Background
     this.bgWordWatermark = this.add.text(640, 480, '', {
-      fontFamily: 'Bernard MT Condensed',
-      fontSize: '220px',
+      fontFamily: "'Press Start 2P'",
+      fontSize: '90px',
       color: '#ffffff'
     }).setOrigin(0.5, 0.5).setAlpha(0.04).setDepth(1).setScrollFactor(0);
 
     // 5D: WPM Gothic Label
-    this.wpmLabel = this.add.text(60, 40, 'WPM', { fontFamily: 'serif', fontSize: '18px', color: '#e8d5a3', fontStyle: 'bold' }).setOrigin(0.5).setDepth(110);
-    this.wpmText = this.add.text(60, 80, '0', { fontFamily: 'serif', fontSize: '64px', color: '#e8d5a3' }).setOrigin(0.5).setDepth(110);
-    this.accHud = this.add.text(60, 125, '100%', { fontFamily: 'monospace', fontSize: '16px', color: '#22c55e' }).setOrigin(0.5).setDepth(110);
+    this.wpmLabel = this.add.text(60, 40, 'WPM', { fontFamily: "'Press Start 2P'", fontSize: '11px', color: '#e8d5a3' }).setOrigin(0.5).setDepth(110);
+    this.wpmText = this.add.text(60, 80, '0', { fontFamily: "'Press Start 2P'", fontSize: '32px', color: '#e8d5a3' }).setOrigin(0.5).setDepth(110);
+    this.accHud = this.add.text(60, 125, '100%', { fontFamily: "'Press Start 2P'", fontSize: '9px', color: '#22c55e' }).setOrigin(0.5).setDepth(110);
 
     // 5D: Combo Top Right
-    this.comboDisplay = this.add.text(1220, 60, '×0', { fontFamily: 'serif', fontSize: '72px', color: '#ffffff' }).setOrigin(1, 0.5).setDepth(110);
+    this.comboDisplay = this.add.text(1220, 60, '×0', { fontFamily: "'Press Start 2P'", fontSize: '32px', color: '#ffffff' }).setOrigin(1, 0.5).setDepth(110);
 
     // 5D: Distance Bar (Bottom)
     this.add.rectangle(640, 715, 1280, 10, 0x000000).setOrigin(0.5).setDepth(110);
@@ -135,13 +135,13 @@ export default class GameScene extends Phaser.Scene {
 
     // Word prompt (Central) - Fix 6: More prominent word display
     this.wordBgPanel = this.add.rectangle(640, 665, 1280, 90, 0x000000, 0.6).setDepth(15);
-    this.wordPrompt = this.add.text(640, 660, '', { fontFamily: 'Bernard MT Condensed', fontSize: '28px', color: '#9ca3af' }).setOrigin(0.5).setDepth(16);
-    this.wordInput = this.add.text(0, 660, '', { fontFamily: 'Bernard MT Condensed', fontSize: '28px', color: '#4ade80' }).setOrigin(0, 0.5).setDepth(17);
+    this.wordPrompt = this.add.text(640, 660, '', { fontFamily: "'Press Start 2P'", fontSize: '14px', color: '#9ca3af' }).setOrigin(0.5).setDepth(16);
+    this.wordInput = this.add.text(0, 660, '', { fontFamily: "'Press Start 2P'", fontSize: '14px', color: '#4ade80' }).setOrigin(0, 0.5).setDepth(17);
 
     // Fix 6: Pulsing current character
     this.currentLetterText = this.add.text(0, 660, '', {
-      fontFamily: 'Bernard MT Condensed',
-      fontSize: '28px',
+      fontFamily: "'Press Start 2P'",
+      fontSize: '14px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0, 0.5).setDepth(18);
@@ -157,7 +157,7 @@ export default class GameScene extends Phaser.Scene {
 
     // Boss HUD Elements (Grouped for cleanup)
     this.bossHudGroup = this.add.group();
-    this.bossWarningText = this.add.text(640, 250, '⚠ BOSS APPROACHING ⚠', { fontFamily: 'serif', fontSize: '52px', color: '#ff3333', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0).setDepth(110);
+    this.bossWarningText = this.add.text(640, 250, '! BOSS APPROACHING !', { fontFamily: "'Press Start 2P'", fontSize: '22px', color: '#ff3333' }).setOrigin(0.5).setAlpha(0).setDepth(110);
   }
 
   setupBossEventListeners() {
@@ -209,7 +209,7 @@ export default class GameScene extends Phaser.Scene {
       // Create Boss HUD
       const barBg = this.add.rectangle(640, 25, 600, 24, 0x222222).setScrollFactor(0);
       this.bossBarFillHUD = this.add.rectangle(340, 25, 600, 24, 0xc0c0ff).setOrigin(0, 0.5).setScrollFactor(0);
-      const bossNameLabel = this.add.text(640, 55, this.activeBoss.name, { fontFamily: 'serif', fontSize: '18px', color: '#ffffff' }).setOrigin(0.5).setScrollFactor(0);
+      const bossNameLabel = this.add.text(640, 55, this.activeBoss.name, { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#ffffff' }).setOrigin(0.5).setScrollFactor(0);
       this.bossHudGroup.add(barBg);
       this.bossHudGroup.add(this.bossBarFillHUD);
       this.bossHudGroup.add(bossNameLabel);
@@ -273,7 +273,7 @@ export default class GameScene extends Phaser.Scene {
       }
 
       this.time.delayedCall(600, () => {
-        const vText = this.add.text(640, 360, '✦ VANQUISHED ✦', { fontFamily: 'serif', fontSize: '82px', color: '#ffd700', fontStyle: 'bold' }).setOrigin(0.5).setAlpha(0);
+        const vText = this.add.text(640, 360, '* VANQUISHED *', { fontFamily: "'Press Start 2P'", fontSize: '36px', color: '#ffd700' }).setOrigin(0.5).setAlpha(0);
         this.tweens.add({
           targets: vText,
           alpha: 1,
@@ -508,8 +508,8 @@ export default class GameScene extends Phaser.Scene {
   showDamageNumber(x, y, amount, multiplier) {
     const color = multiplier >= 3 ? '#ef4444' : multiplier >= 2 ? '#f97316' : '#ffffff';
     const txt = this.add.text(x, y - 20, Math.floor(amount), {
-      fontSize: '24px',
-      fontStyle: 'bold',
+      fontFamily: "'Press Start 2P'",
+      fontSize: '11px',
       color,
       stroke: '#000000',
       strokeThickness: 3

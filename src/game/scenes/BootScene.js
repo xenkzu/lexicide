@@ -6,6 +6,11 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    // Inject Press Start 2P pixel font
+    const style = document.createElement('style');
+    style.textContent = `@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');`;
+    document.head.appendChild(style);
+
     this.load.spritesheet('knight_idle', 'assets/sprites/knight_idle.png', {
       frameWidth: 68,
       frameHeight: 68
@@ -73,7 +78,10 @@ export default class BootScene extends Phaser.Scene {
       repeat: 0
     });
 
-    this.scene.start('GameScene');
+    // Wait 800ms for Press Start 2P font to load before showing menu
+    this.time.delayedCall(800, () => {
+      this.scene.start('MenuScene');
+    });
   }
 
   generateParallaxTextures() {

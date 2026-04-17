@@ -1,4 +1,5 @@
 import BootScene from './scenes/BootScene';
+import MenuScene from './scenes/MenuScene';
 import GameScene from './scenes/GameScene';
 
 export default {
@@ -20,5 +21,5 @@ export default {
       debug: false
     }
   },
-  scene: [BootScene, GameScene]
+  scene: [BootScene, MenuScene, GameScene]
 };
