@@ -7,6 +7,11 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { background: #0a0a0f; overflow: hidden; }
+      @font-face {
+        font-family: 'Press Start 2P';
+        src: url('/assets/fonts/PressStart2P-Regular.ttf') format('truetype');
+        font-display: block;
+      }
       canvas {
         display: block;
         image-rendering: crisp-edges;
@@ -37,6 +42,8 @@
 </head>
 <body>
     <div id="debug-log"></div>
+    <!-- Preload font -->
+    <div style="font-family: 'Press Start 2P'; visibility: hidden; position: absolute; top: -100px;">.</div>
     <div id="game-container"></div>
     <script type="module" src="/src/main.js"></script>
 </body>

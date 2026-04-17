@@ -77,6 +77,9 @@ export default class Enemy extends Phaser.GameObjects.Container {
   die() {
     if (!this.isAlive) return;
     this.isAlive = false;
+
+    // Notify the scene a kill happened (for boss spawn counter)
+    this.scene.events.emit('enemyKilled');
     
     // Stop movement and disable physics
     if (this.body) {

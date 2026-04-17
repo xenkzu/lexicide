@@ -161,6 +161,11 @@ export default class GameScene extends Phaser.Scene {
   }
 
   setupBossEventListeners() {
+    // relay enemy kills to level manager for boss-spawn counter
+    this.events.on('enemyKilled', () => {
+      this.levelManager.onEnemyKilled();
+    });
+
     this.events.on('wordComplete', () => {
       this.knight.performAttack(this.enemies.getChildren());
     });
@@ -308,12 +313,18 @@ export default class GameScene extends Phaser.Scene {
 
   spawnEnemy(force = false) {
     if (this.bossEncounterActive && !force) return;
+    // Don't exceed the round's kill-quota unless forced (boss mid-fight spawn)
+    if (!force && !this.levelManager.canSpawnEnemy()) return;
+
     const config = this.levelManager.getEnemyConfig();
     const enemy = new Enemy(this, 1400, 640, config);
     enemy.setDepth(12);
-    this.enemies.add(enemy); 
+    this.enemies.add(enemy);
     this.spawnTimer.delay = config.spawnInterval;
+
+    if (!force) this.levelManager.onEnemySpawned();
   }
+
 
   update(time, delta) {
     if (this.isGameOver) {

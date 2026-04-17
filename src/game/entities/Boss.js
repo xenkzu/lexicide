@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import StatsBus from '../systems/StatsBus.js';
 
 export default class Boss extends Phaser.GameObjects.Image {
   constructor(scene, x, y) {
@@ -20,12 +21,20 @@ export default class Boss extends Phaser.GameObjects.Image {
     // Stage thresholds: [300, 200, 100]
     this.stageColors = [0xc0c0ff, 0xff6688, 0xff2200];
     this.setTint(this.stageColors[0]);
+
+    // Hit SFX
+    this.hitSound = scene.sound.add('boss_hit_sfx', { volume: 0.7 });
   }
 
   takeDamage(amount) {
     if (!this.isAlive) return;
     
     this.health -= amount;
+
+    // Play hit SFX if not muted
+    if (!StatsBus.muted && this.hitSound && !this.hitSound.isPlaying) {
+      this.hitSound.play();
+    }
     
     // Check stage transition: stages correspond to [0-100], [101-200], [201-300]
     // 300hp -> stage 0
