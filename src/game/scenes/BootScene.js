@@ -20,6 +20,16 @@ export default class BootScene extends Phaser.Scene {
       frameWidth: 68,
       frameHeight: 68
     });
+
+    this.load.spritesheet('enemy_gork', 'assets/sprites/gork_walking.png', {
+      frameWidth: 68,
+      frameHeight: 68
+    });
+
+    this.load.spritesheet('enemy_death', 'assets/sprites/Grok_death.png', {
+      frameWidth: 68,
+      frameHeight: 68
+    });
   }
 
   create() {
@@ -46,6 +56,20 @@ export default class BootScene extends Phaser.Scene {
       key: 'knight_fireball',
       frames: this.anims.generateFrameNumbers('knight_fireball', { start: 0, end: 5 }),
       frameRate: 14,
+      repeat: 0
+    });
+
+    this.anims.create({
+      key: 'enemy_walk',
+      frames: this.anims.generateFrameNumbers('enemy_gork', { start: 0, end: 7 }),
+      frameRate: 10,
+      repeat: -1
+    });
+
+    this.anims.create({
+      key: 'enemy_death',
+      frames: this.anims.generateFrameNumbers('enemy_death', { start: 0, end: 8 }),
+      frameRate: 12,
       repeat: 0
     });
 

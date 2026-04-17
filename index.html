@@ -12,9 +12,31 @@
         image-rendering: crisp-edges;
         image-rendering: -webkit-optimize-contrast;
       }
+      #debug-log {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(255,0,0,0.8);
+        color: white;
+        font-family: monospace;
+        padding: 10px;
+        z-index: 10000;
+        display: none;
+        word-wrap: break-word;
+      }
     </style>
+    <script>
+      window.onerror = function(msg, url, lineNo, columnNo, error) {
+        var log = document.getElementById('debug-log');
+        log.style.display = 'block';
+        log.innerHTML = 'ERROR: ' + msg + ' <br>at ' + url + ':' + lineNo + ':' + columnNo;
+        return false;
+      };
+    </script>
 </head>
 <body>
+    <div id="debug-log"></div>
     <div id="game-container"></div>
     <script type="module" src="/src/main.js"></script>
 </body>

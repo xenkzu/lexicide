@@ -10,14 +10,15 @@ export default class Enemy extends Phaser.GameObjects.Container {
     this.speed = config.speed;
     this.isAlive = true;
 
-    // Use the upgraded canvas texture
-    this.sprite = scene.add.image(0, 0, 'enemy_tex');
+    // Use the gork spritesheet
+    this.sprite = scene.add.sprite(0, 0, 'enemy_gork').setScale(1.5).setOrigin(0.5, 1.0);
+    this.sprite.play('enemy_walk');
     this.add(this.sprite);
 
     // 5C: Health bars thinner (4px), 18px above, dark border
-    this.hpBorder = scene.add.rectangle(0, -35, 42, 6, 0x000000); // Border
-    this.hpBg = scene.add.rectangle(0, -35, 40, 4, 0x333333);
-    this.hpFill = scene.add.rectangle(-20, -35, 40, 4, 0x22c55e).setOrigin(0, 0.5);
+    this.hpBorder = scene.add.rectangle(0, -115, 42, 6, 0x000000); // Border
+    this.hpBg = scene.add.rectangle(0, -115, 40, 4, 0x333333);
+    this.hpFill = scene.add.rectangle(-20, -115, 40, 4, 0x22c55e).setOrigin(0, 0.5);
     this.add([this.hpBorder, this.hpBg, this.hpFill]);
 
     // Store primary visual for damage flashes
@@ -26,6 +27,8 @@ export default class Enemy extends Phaser.GameObjects.Container {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.body.setAllowGravity(false);
+    this.body.setSize(60, 100);
+    this.body.setOffset(-30, -100);
   }
 
   update(delta) {
@@ -75,12 +78,25 @@ export default class Enemy extends Phaser.GameObjects.Container {
     if (!this.isAlive) return;
     this.isAlive = false;
     
+    // Stop movement and disable physics
+    if (this.body) {
+      this.body.enable = false;
+    }
+
+    // Hide HP bar
+    this.hpBorder.setVisible(false);
+    this.hpBg.setVisible(false);
+    this.hpFill.setVisible(false);
+
+    // Play death animation
+    this.sprite.play('enemy_death');
+    
     // 5C: Ember-like particles
     const colors = [0xff4400, 0xff8800];
     for (let i = 0; i < 15; i++) {
-      const p = this.scene.add.rectangle(this.x, this.y, 4, 4, colors[Math.floor(Math.random() * 2)]);
+      const p = this.scene.add.rectangle(this.x, this.y - 30, 4, 4, colors[Math.floor(Math.random() * 2)]);
       const angle = Math.random() * Math.PI * 2;
-      const dist = Math.random() * 150 + 50;
+      const dist = Math.random() * 100 + 50;
       
       this.scene.tweens.add({
         targets: p,
@@ -94,6 +110,16 @@ export default class Enemy extends Phaser.GameObjects.Container {
       });
     }
 
-    this.destroy();
+    // Destroy after animation or a short delay
+    this.sprite.on('animationcomplete', (anim) => {
+      if (anim.key === 'enemy_death') {
+        this.destroy();
+      }
+    });
+
+    // Fallback destroy just in case
+    this.scene.time.delayedCall(1500, () => {
+        if (this.active) this.destroy();
+    });
   }
 }

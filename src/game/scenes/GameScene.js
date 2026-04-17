@@ -4,6 +4,7 @@ import StatsBus from '../systems/StatsBus';
 import Knight from '../entities/Knight';
 import Enemy from '../entities/Enemy';
 import Boss from '../entities/Boss';
+import Fireball from '../entities/Fireball';
 import LevelManager from '../systems/LevelManager';
 
 export default class GameScene extends Phaser.Scene {
@@ -23,6 +24,7 @@ export default class GameScene extends Phaser.Scene {
     // Groups
     this.enemies = this.add.group();
     this.bossGroup = this.add.group();
+    this.projectiles = this.add.group();
 
     // Main Character
     this.knight = new Knight(this, 200, 640);
@@ -43,6 +45,27 @@ export default class GameScene extends Phaser.Scene {
     // State
     this.bossEncounterActive = false;
     this.speedOverride = 1.0;
+    this.bossHitsReceived = 0;
+    this.isGameOver = false;
+
+    this.setupGameOverUI();
+  }
+
+  setupGameOverUI() {
+    this.gameOverGroup = this.add.group();
+    
+    const bg = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7)
+      .setDepth(1000).setScrollFactor(0).setVisible(false);
+    
+    const title = this.add.text(640, 320, 'GAME OVER', { 
+      fontFamily: 'serif', fontSize: '96px', color: '#ff3333', fontStyle: 'bold' 
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
+
+    const restartTxt = this.add.text(640, 420, 'Press SPACE to Restart', { 
+      fontFamily: 'serif', fontSize: '24px', color: '#ffffff' 
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
+
+    this.gameOverGroup.addMultiple([bg, title, restartTxt]);
   }
 
   setupAtmosphere() {
@@ -142,6 +165,18 @@ export default class GameScene extends Phaser.Scene {
       this.knight.performAttack(this.enemies.getChildren());
     });
 
+    this.events.on('gameover', () => {
+      this.isGameOver = true;
+      this.speedOverride = 0;
+      this.gameOverGroup.getChildren().forEach(c => c.setVisible(true));
+      
+      this.tweens.add({
+        targets: this.gameOverGroup.getChildren(),
+        alpha: { from: 0, to: 1 },
+        duration: 500
+      });
+    });
+
     this.events.on('bossApproaching', () => {
       // cinematic warning
       this.speedOverride = 0.3;
@@ -196,8 +231,9 @@ export default class GameScene extends Phaser.Scene {
       this.bossBarFillHUD.setFillStyle(this.activeBoss.stageColors[stage]);
     });
 
-    this.events.on('bossPhraseComplete', () => {
-      if (this.activeBoss) this.activeBoss.takeDamage(100);
+    this.events.on('bossWordComplete', () => {
+      // Every boss word deals 30 damage
+      this.knight.performAttack([], 30);
     });
 
     this.events.on('bossTypingError', () => {
@@ -270,31 +306,42 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  spawnEnemy() {
-    if (this.bossEncounterActive) return;
+  spawnEnemy(force = false) {
+    if (this.bossEncounterActive && !force) return;
     const config = this.levelManager.getEnemyConfig();
-    const enemy = new Enemy(this, 1400, 566, config);
+    const enemy = new Enemy(this, 1400, 640, config);
     enemy.setDepth(12);
     this.enemies.add(enemy); 
     this.spawnTimer.delay = config.spawnInterval;
   }
 
   update(time, delta) {
+    if (this.isGameOver) {
+      const spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+      if (spaceKey.isDown) {
+        window.location.reload();
+      }
+      return;
+    }
+
     const moveSpeed = StatsBus.moveSpeed * this.speedOverride;
     TypingEngine.update(delta);
 
-    // 1. Parallax Update (Dynamic Speed scaling)
-    const speedRatio = Math.max(1.0, moveSpeed / 160); // 160 is base speed
+    // 1. Parallax Update (Dynamic Speed scaling) linked to Knight movement
+    const isKnightIdle = this.knight.currentAnim === 'knight_idle';
+    const effectiveMoveSpeed = isKnightIdle ? 0 : moveSpeed;
+
+    const speedRatio = Math.max(1.0, effectiveMoveSpeed / 160); // 160 is base speed
     const dynamicMultiplier = 1.0 + (speedRatio - 1.0) * 0.5; // Scale intensity with speed
     
-    this.bgLayer0.tilePositionX += moveSpeed * 0.005 * dynamicMultiplier * (delta / 1000);
-    this.bgLayer1.tilePositionX += moveSpeed * 0.02 * dynamicMultiplier * (delta / 1000);
-    this.bgLayer2.tilePositionX += moveSpeed * 0.08 * dynamicMultiplier * (delta / 1000);
-    this.bgLayer3.tilePositionX += moveSpeed * 0.22 * dynamicMultiplier * (delta / 1000);
-    this.bgLayer4.tilePositionX += moveSpeed * 1.2 * dynamicMultiplier * (delta / 1000);
+    this.bgLayer0.tilePositionX += effectiveMoveSpeed * 0.005 * dynamicMultiplier * (delta / 1000);
+    this.bgLayer1.tilePositionX += effectiveMoveSpeed * 0.02 * dynamicMultiplier * (delta / 1000);
+    this.bgLayer2.tilePositionX += effectiveMoveSpeed * 0.08 * dynamicMultiplier * (delta / 1000);
+    this.bgLayer3.tilePositionX += effectiveMoveSpeed * 0.22 * dynamicMultiplier * (delta / 1000);
+    this.bgLayer4.tilePositionX += effectiveMoveSpeed * 1.2 * dynamicMultiplier * (delta / 1000);
 
-    // Speed Lines Intensity
-    const linesIntensity = Math.max(0, (moveSpeed - 220) / 180); // Start showing above 220
+    // Speed Lines Intensity (Only while not idle)
+    const linesIntensity = !isKnightIdle ? Math.max(0, (moveSpeed - 220) / 180) : 0;
     this.speedLines.setParticleAlpha({ start: linesIntensity * 0.5, end: 0 });
     this.speedLines.setQuantity(Math.floor(linesIntensity * 3));
 
@@ -305,12 +352,62 @@ export default class GameScene extends Phaser.Scene {
     // Combat
     if (this.activeBoss && this.activeBoss.isAlive) {
       this.activeBoss.update(time, delta);
+      
+      // Boss collision with knight
+      if (!this.knight.isDead && Math.abs(this.activeBoss.x - this.knight.x) < 80) {
+        this.knight.takeDamage(34); // Deal damage
+        this.activeBoss.x += 150; // Knockback boss to prevent continuous damage
+        StatsBus.set('combo', 0);
+        StatsBus.set('comboMultiplier', 1.0);
+        StatsBus.set('errorFlash', true);
+      }
     }
-    // (Enemy-knight overlap or damage logic)
 
     this.enemies.getChildren().forEach(e => {
       e.update(delta);
+      
+      // Normal enemy collision with knight
+      if (e.isAlive && !this.knight.isDead && Math.abs(e.x - this.knight.x) < 50) {
+        this.knight.takeDamage(20);
+        e.die(); // Destroy enemy on hit
+        StatsBus.set('combo', 0);
+        StatsBus.set('comboMultiplier', 1.0);
+        StatsBus.set('errorFlash', true);
+      }
+
       if (e.x < -100) e.destroy();
+    });
+
+    this.projectiles.getChildren().forEach(p => {
+        p.update(delta);
+        
+        // Check collision with enemies (Using physics body for the custom hitbox)
+        this.enemies.getChildren().forEach(e => {
+            if (e.isAlive && this.physics.overlap(p, e)) {
+                p.handleHit(e);
+            }
+        });
+
+        // Check collision with boss
+        if (this.activeBoss && this.activeBoss.isAlive && this.physics.overlap(p, this.activeBoss)) {
+            p.handleHit(this.activeBoss);
+            
+            // Increment boss specific hit counter
+            this.bossHitsReceived++;
+
+            // Smooth Knockback Tween
+            this.tweens.add({
+                targets: this.activeBoss,
+                x: this.activeBoss.x + 80,
+                duration: 200,
+                ease: 'Cubic.easeOut'
+            });
+
+            // Every 3 hits, spawn an internal enemy (Groq) for chaos
+            if (this.bossHitsReceived % 3 === 0) {
+                this.spawnEnemy(true); 
+            }
+        }
     });
 
     this.updateComboEffects();

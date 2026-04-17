@@ -10,17 +10,10 @@ const WORDS = [
   'light', 'shine', 'glow', 'fire'
 ];
 
-const BOSS_PHRASES = [
-  "eternal darkness falls",
-  "wretched hollow void",
-  "consume the light",
-  "none shall pass",
-  "the abyss hungers",
-  "shadow devours shadow",
-  "kneel before the specter",
-  "ancient souls awakening",
-  "death comes for all",
-  "embrace the cold silence"
+const BOSS_WORDS = [
+  'exterminate', 'obliterate', 'annihilate', 'malediction', 'catastrophe',
+  'devastation', 'apocalypse', 'purgatory', 'sacrifice', 'benediction',
+  'ravenous', 'abyssal', 'eternity', 'vengeance', 'corruption', 'valediction'
 ];
 
 class TypingEngine {
@@ -36,8 +29,9 @@ class TypingEngine {
     this.errorFlash = false;
     
     // Boss specific
-    this.bossPhrasesRemaining = [];
+    this.bossWordsRemaining = [];
     this.scene = null; // Set by GameScene
+    this.lastActivityTime = 0;
   }
 
   init(scene) {
@@ -49,18 +43,17 @@ class TypingEngine {
 
   enterBossMode() {
     this.mode = 'boss';
-    // Shuffle and pick 3 phrases
-    const pool = [...BOSS_PHRASES].sort(() => Math.random() - 0.5);
-    this.bossPhrasesRemaining = pool.slice(0, 3);
+    // Use the boss word pool
+    this.bossWordsRemaining = [...BOSS_WORDS].sort(() => Math.random() - 0.5);
     this.loadNextBossPhrase();
   }
 
   loadNextBossPhrase() {
-    if (this.bossPhrasesRemaining.length === 0 && this.mode === 'boss') {
-      // Logic for boss death trigger
-      return;
+    if (this.bossWordsRemaining.length === 0) {
+      // Refresh pool if we somehow run out
+      this.bossWordsRemaining = [...BOSS_WORDS].sort(() => Math.random() - 0.5);
     }
-    this.currentWord = this.bossPhrasesRemaining.shift();
+    this.currentWord = this.bossWordsRemaining.shift();
     this.inputText = '';
     this.errorFlash = false;
     StatsBus.set('currentWord', this.currentWord);
@@ -86,6 +79,9 @@ class TypingEngine {
     if (e.key.length !== 1 && e.key !== ' ') return; // Allow space
 
     this.totalKeystrokes++;
+    this.lastActivityTime = Date.now();
+    StatsBus.set('isUserTyping', true);
+
     const expectedChar = this.currentWord[this.inputText.length];
 
     if (e.key === expectedChar) {
@@ -98,10 +94,9 @@ class TypingEngine {
 
       if (this.inputText === this.currentWord) {
         if (this.mode === 'boss') {
-          this.scene.events.emit('bossPhraseComplete');
-          if (this.bossPhrasesRemaining.length > 0) {
-            this.loadNextBossPhrase();
-          }
+          // Launch a high-damage plasma ball for every word
+          this.scene.events.emit('bossWordComplete');
+          this.loadNextBossPhrase();
         } else {
           this.wordsCompleted++;
           this.calculateCombo();
@@ -154,6 +149,11 @@ class TypingEngine {
 
   update(delta) {
     this.calculateStats();
+    
+    // Check for typing idleness (Idle after 1.5s of no keypress)
+    if (Date.now() - this.lastActivityTime > 1500) {
+      StatsBus.set('isUserTyping', false);
+    }
   }
 }
 
