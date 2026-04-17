@@ -31,8 +31,12 @@ export default class BootScene extends Phaser.Scene {
       frameHeight: 68
     });
 
-    // Boss hit SFX
+    // Audio
+    this.load.audio('launch_sfx', 'assets/audio/launch.mp3');
     this.load.audio('boss_hit_sfx', 'assets/audio/makabhosda_aag.mp3');
+    this.load.audio('gameplay_music', 'assets/audio/gameplay_music.mp3');
+    this.load.audio('menu_music', 'assets/audio/loop background.mp3');
+    this.load.audio('impact_sfx', 'assets/audio/impact.mp3');
   }
 
   create() {

@@ -26,6 +26,17 @@ export default class MenuScene extends Phaser.Scene {
     this.buildVersion();
     this.buildScanlines();
     this.setupKeyboard();
+
+    if (!StatsBus.muted) {
+      this.sound.play('launch_sfx', { volume: StatsBus.sfxVol });
+      this.menuMusic = this.sound.add('menu_music', { loop: true, volume: 0 });
+      this.menuMusic.play();
+      this.tweens.add({
+        targets: this.menuMusic,
+        volume: StatsBus.musicVol,
+        duration: 3000
+      });
+    }
   }
 
   update(time, delta) {
@@ -101,7 +112,6 @@ export default class MenuScene extends Phaser.Scene {
   buildTitle() {
     const fontFamily = "'Press Start 2P'";
 
-    // --- RANDOM TAGLINE SYSTEM ---
     const taglines = [
       "Type faster genius the game is judging you",
       "Congratulations your typing speed is still disappointing",
@@ -136,20 +146,21 @@ export default class MenuScene extends Phaser.Scene {
 
     const lastTagline = localStorage.getItem('lexicide_last_tagline');
     let availableTaglines = taglines.filter(t => t !== lastTagline);
-    if (availableTaglines.length === 0) availableTaglines = taglines; // Fail-safe
-
+    if (availableTaglines.length === 0) availableTaglines = taglines;
+    
     const pickedTagline = Phaser.Utils.Array.GetRandom(availableTaglines);
     localStorage.setItem('lexicide_last_tagline', pickedTagline);
     const finalTaglineTxt = pickedTagline.toUpperCase();
 
     // Drop shadow layer
-    this.add.text(643, 203, 'LEXICIDE', {
+    const shadow = this.add.text(643, 203, 'LEXICIDE', {
       fontFamily,
       fontSize: '72px',
       color: '#4b0082'
-    }).setOrigin(0.5).setDepth(9);
+    }).setOrigin(0.5).setDepth(9).setScale(0);
 
     // Bloom glow layers
+    const blooms = [];
     const bloomConfigs = [
       { scale: 1.06, alpha: 0.05 },
       { scale: 1.04, alpha: 0.10 },
@@ -160,7 +171,10 @@ export default class MenuScene extends Phaser.Scene {
         fontFamily,
         fontSize: '72px',
         color: '#e0d0ff'
-      }).setOrigin(0.5).setDepth(9).setAlpha(alpha).setScale(scale);
+      }).setOrigin(0.5).setDepth(9).setAlpha(alpha).setScale(0);
+      
+      blooms.push({ obj: bloom, targetScale: scale });
+
       this.tweens.add({
         targets: bloom,
         y: { from: 200, to: 194 },
@@ -176,31 +190,72 @@ export default class MenuScene extends Phaser.Scene {
       fontFamily,
       fontSize: '72px',
       color: '#e0d0ff'
-    }).setOrigin(0.5).setDepth(10);
+    }).setOrigin(0.5).setDepth(10).setScale(0);
 
+    // 1. Final Main Title Entry (Now First)
+    const allTitleObjs = [shadow, titleText, ...blooms.map(b => b.obj)];
     this.tweens.add({
-      targets: titleText,
-      y: { from: 200, to: 194 },
-      duration: 2500,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
+      targets: allTitleObjs,
+      scale: 1,
+      duration: 800,
+      delay: 400,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        blooms.forEach(b => b.obj.setScale(b.targetScale));
+        this.tweens.add({
+          targets: titleText,
+          y: { from: 200, to: 194 },
+          duration: 2500,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
     });
+
+    // 2. Cinematic Ghost Trails (Follow after main title)
+    const numTrails = 5;
+    for (let i = 0; i < numTrails; i++) {
+      const trail = this.add.text(640, 200, 'LEXICIDE', {
+        fontFamily, fontSize: '72px', color: '#e0d0ff'
+      }).setOrigin(0.5).setDepth(8).setScale(0).setAlpha(0.6 - (i * 0.12));
+
+      this.tweens.add({
+        targets: trail,
+        scale: 1,
+        duration: 800,
+        delay: 400 + ((i + 1) * 250), // Each shifts 0.25s from previous (Main title is index 0 essentially)
+        ease: 'Cubic.easeOut',
+        onComplete: () => {
+          this.tweens.add({ targets: trail, alpha: 0, duration: 400, onComplete: () => trail.destroy() });
+        }
+      });
+    }
 
     // Tagline - Randomized
     const subtitle = this.add.text(640, 285, finalTaglineTxt, {
       fontFamily,
-      fontSize: '14px',
+      fontSize: '16px',
       color: '#9b7dff'
-    }).setOrigin(0.5).setDepth(10).setAlpha(1.0);
+    }).setOrigin(0.5).setDepth(10).setAlpha(0).setScale(0.8);
 
     this.tweens.add({
       targets: subtitle,
-      alpha: { from: 1.0, to: 0.3 },
-      duration: 800,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Stepped'
+      alpha: 1,
+      scale: 1,
+      delay: 400 + (numTrails * 250) + 1000,
+      duration: 400,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: subtitle,
+          alpha: { from: 1.0, to: 0.3 },
+          duration: 800,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Stepped'
+        });
+      }
     });
   }
 
@@ -208,8 +263,8 @@ export default class MenuScene extends Phaser.Scene {
 
   buildButtons() {
     this._buildPlayButton();      // center x=640
-    this._buildSettingsButton();  // right  x=860
-    this._buildMuteButton();      // left   x=420
+    this._buildSettingsButton();  // right  x=920
+    this._buildMuteButton();      // left   x=360
   }
 
   _makeButtonGraphics(x, y, w, h, fillColor, strokeColor, strokeWidth) {
@@ -227,10 +282,10 @@ export default class MenuScene extends Phaser.Scene {
   _buildPlayButton() {
     const x = 640, y = 390, w = 240, h = 60;
     const FILL_NORMAL = 0x1a0044;
-    const FILL_HOVER = 0x2d0066;
-    const FILL_DOWN = 0x0d0022;
+    const FILL_HOVER  = 0x2d0066;
+    const FILL_DOWN   = 0x0d0022;
     const STROKE_NORMAL = 0x9b7dff;
-    const STROKE_HOVER = 0xcc99ff;
+    const STROKE_HOVER  = 0xcc99ff;
 
     const container = this.add.container(x, y).setDepth(10);
 
@@ -291,9 +346,9 @@ export default class MenuScene extends Phaser.Scene {
 
   _buildSettingsButton() {
     const x = 920, y = 390, w = 200, h = 60;
-    const FILL_NORMAL = 0x0a001a;
+    const FILL_NORMAL   = 0x0a001a;
     const STROKE_NORMAL = 0x554488;
-    const STROKE_HOVER = 0x9b7dff;
+    const STROKE_HOVER  = 0x9b7dff;
 
     const container = this.add.container(x, y).setDepth(10);
 
@@ -346,9 +401,9 @@ export default class MenuScene extends Phaser.Scene {
 
   _buildMuteButton() {
     const x = 360, y = 390, w = 200, h = 60;
-    const FILL_NORMAL = 0x0a001a;
-    const STROKE_UNMUTED = 0x554488;
-    const STROKE_MUTED = 0x880000;
+    const FILL_NORMAL     = 0x0a001a;
+    const STROKE_UNMUTED  = 0x554488;
+    const STROKE_MUTED    = 0x880000;
 
     const container = this.add.container(x, y).setDepth(10);
 
@@ -386,14 +441,16 @@ export default class MenuScene extends Phaser.Scene {
       drawBg(FILL_NORMAL, s, 2);
       container.setScale(1);
     });
-    hitZone.on('pointerdown', () => { });
+    hitZone.on('pointerdown', () => {});
     hitZone.on('pointerup', () => {
       this.isMuted = !this.isMuted;
       const s = this.isMuted ? STROKE_MUTED : STROKE_UNMUTED;
       label.setText(this.isMuted ? '\u2715 SFX' : '\u266a SFX');
       drawBg(FILL_NORMAL, s, 2);
       container.setScale(1);
-      // Propagate mute state if needed
+      
+      // Global Mute
+      this.sound.mute = this.isMuted;
       StatsBus.set('muted', this.isMuted);
     });
 
@@ -428,39 +485,74 @@ export default class MenuScene extends Phaser.Scene {
     divider.lineStyle(1, 0x9b7dff, 0.3);
     divider.lineBetween(-180, -110, 180, -110);
 
-    const volLabel = this.add.text(-160, -80, 'VOLUME', {
+    // --- MUSIC VOL SLIDER ---
+    const musicLabel = this.add.text(-170, -85, 'MUSIC', {
       fontFamily: "'Press Start 2P'",
-      fontSize: '11px',
+      fontSize: '10px',
       color: '#9b7dff'
     });
 
-    const volValue = this.add.text(-160, -52, '100%', {
+    const mTrack = this.add.rectangle(-40, -78, 140, 4, 0x443366).setOrigin(0, 0.5);
+    const mHandle = this.add.circle(-40 + (StatsBus.musicVol * 140), -78, 8, 0x9b7dff).setInteractive({ draggable: true, useHandCursor: true });
+    const mValue = this.add.text(115, -85, `${Math.round(StatsBus.musicVol * 100)}%`, {
       fontFamily: "'Press Start 2P'",
-      fontSize: '11px',
+      fontSize: '10px',
       color: '#ffffff'
     });
 
-    const resLabel = this.add.text(-160, 10, 'RESOLUTION', {
+    mHandle.on('drag', (pointer, dragX) => {
+      const x = Phaser.Math.Clamp(dragX, -40, 100);
+      mHandle.x = x;
+      const vol = (x + 40) / 140;
+      StatsBus.set('musicVol', vol);
+      mValue.setText(`${Math.round(vol * 100)}%`);
+      if (this.menuMusic) this.menuMusic.setVolume(vol);
+    });
+
+    // --- SFX VOL SLIDER ---
+    const sfxLabel = this.add.text(-170, -35, 'SFX', {
       fontFamily: "'Press Start 2P'",
-      fontSize: '11px',
+      fontSize: '10px',
       color: '#9b7dff'
     });
 
-    const resValue = this.add.text(-160, 38, '1280 x 720', {
+    const sTrack = this.add.rectangle(-40, -28, 140, 4, 0x443366).setOrigin(0, 0.5);
+    const sHandle = this.add.circle(-40 + (StatsBus.sfxVol * 140), -28, 8, 0x9b7dff).setInteractive({ draggable: true, useHandCursor: true });
+    const sValue = this.add.text(115, -35, `${Math.round(StatsBus.sfxVol * 100)}%`, {
       fontFamily: "'Press Start 2P'",
-      fontSize: '11px',
+      fontSize: '10px',
       color: '#ffffff'
     });
 
-    const qualLabel = this.add.text(-160, 80, 'PIXEL ART MODE', {
+    sHandle.on('drag', (pointer, dragX) => {
+      const x = Phaser.Math.Clamp(dragX, -40, 100);
+      sHandle.x = x;
+      const vol = (x + 40) / 140;
+      StatsBus.set('sfxVol', vol);
+      sValue.setText(`${Math.round(vol * 100)}%`);
+    });
+
+    const resLabel = this.add.text(-170, 15, 'RESOLUTION', {
       fontFamily: "'Press Start 2P'",
-      fontSize: '11px',
+      fontSize: '10px',
       color: '#9b7dff'
     });
 
-    const qualValue = this.add.text(-160, 108, 'ON', {
+    const resValue = this.add.text(-170, 40, '1280 x 720', {
       fontFamily: "'Press Start 2P'",
-      fontSize: '11px',
+      fontSize: '10px',
+      color: '#ffffff'
+    });
+
+    const qualLabel = this.add.text(-170, 85, 'PIXEL ART MODE', {
+      fontFamily: "'Press Start 2P'",
+      fontSize: '10px',
+      color: '#9b7dff'
+    });
+
+    const qualValue = this.add.text(-170, 110, 'ON', {
+      fontFamily: "'Press Start 2P'",
+      fontSize: '10px',
       color: '#ffffff'
     });
 
@@ -476,7 +568,8 @@ export default class MenuScene extends Phaser.Scene {
 
     this.settingsPanel.add([
       backdrop, panel, title, divider,
-      volLabel, volValue,
+      musicLabel, mTrack, mHandle, mValue,
+      sfxLabel, sTrack, sHandle, sValue,
       resLabel, resValue,
       qualLabel, qualValue,
       closeBtn
@@ -612,8 +705,6 @@ export default class MenuScene extends Phaser.Scene {
     });
   }
 
-  // ─── Keyboard ──────────────────────────────────────────────────────────────
-
   setupKeyboard() {
     this.input.keyboard.on('keydown-ENTER', () => {
       this.startGame();
@@ -626,19 +717,23 @@ export default class MenuScene extends Phaser.Scene {
     });
   }
 
-  // ─── Scroll ────────────────────────────────────────────────────────────────
-
   scrollBackground(delta) {
     this.bgLayer0.tilePositionX += 20 * 0.005 * (delta / 1000);
-    this.bgLayer1.tilePositionX += 20 * 0.02 * (delta / 1000);
-    this.bgLayer2.tilePositionX += 20 * 0.08 * (delta / 1000);
-    this.bgLayer3.tilePositionX += 20 * 0.18 * (delta / 1000);
+    this.bgLayer1.tilePositionX += 20 * 0.02  * (delta / 1000);
+    this.bgLayer2.tilePositionX += 20 * 0.08  * (delta / 1000);
+    this.bgLayer3.tilePositionX += 20 * 0.18  * (delta / 1000);
   }
 
-  // ─── Start Game ────────────────────────────────────────────────────────────
-
   startGame() {
-    // Brief flash transition
+    if (this.menuMusic) {
+      this.tweens.add({
+        targets: this.menuMusic,
+        volume: 0,
+        duration: 1000,
+        onComplete: () => this.menuMusic.stop()
+      });
+    }
+
     const flash = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0).setDepth(100);
     this.tweens.add({
       targets: flash,

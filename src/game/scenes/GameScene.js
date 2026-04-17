@@ -49,6 +49,119 @@ export default class GameScene extends Phaser.Scene {
     this.isGameOver = false;
 
     this.setupGameOverUI();
+    this.setupAudio();
+    this.buildSettingsOverlay();
+    
+    // Settings Button (HUD)
+    const settingsBtn = this.add.container(1240, 40).setDepth(1100);
+    const sBg = this.add.circle(0, 0, 18, 0x000000, 0.6).setStrokeStyle(2, 0x9b7dff);
+    const sLabel = this.add.text(0, 0, '\u2699', { fontSize: '20px', color: '#ffffff' }).setOrigin(0.5);
+    settingsBtn.add([sBg, sLabel]);
+    sBg.setInteractive({ useHandCursor: true });
+    sBg.on('pointerup', () => this.toggleSettings());
+
+    // ESC Listener
+    this.input.keyboard.on('keydown-ESC', () => this.toggleSettings());
+  }
+
+  toggleSettings() {
+    this.settingsPanel.setVisible(!this.settingsPanel.visible);
+    // Optional: Pause logic could go here
+  }
+
+  buildSettingsOverlay() {
+    this.settingsPanel = this.add.container(640, 360).setDepth(2000).setVisible(false);
+
+    const backdrop = this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.85).setInteractive(); // Block input to game
+
+    const panel = this.add.graphics();
+    panel.lineStyle(2, 0x9b7dff, 1);
+    panel.fillStyle(0x0d0022, 0.97);
+    panel.fillRoundedRect(-200, -180, 400, 365, 8);
+    panel.strokeRoundedRect(-200, -180, 400, 365, 8);
+
+    const title = this.add.text(0, -140, 'SETTINGS', {
+      fontFamily: "'Press Start 2P'",
+      fontSize: '18px',
+      color: '#e0d0ff'
+    }).setOrigin(0.5);
+
+    const divider = this.add.graphics();
+    divider.lineStyle(1, 0x9b7dff, 0.3);
+    divider.lineBetween(-180, -110, 180, -110);
+
+    // MUSIC
+    const mLabel = this.add.text(-170, -85, 'MUSIC', { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#9b7dff' });
+    const mTrack = this.add.rectangle(-40, -78, 140, 4, 0x443366).setOrigin(0, 0.5);
+    const mHandle = this.add.circle(-40 + (StatsBus.musicVol * 140), -78, 8, 0x9b7dff).setInteractive({ draggable: true, useHandCursor: true });
+    const mValue = this.add.text(115, -85, `${Math.round(StatsBus.musicVol * 100)}%`, { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#ffffff' });
+
+    mHandle.on('drag', (pointer, dragX) => {
+      const x = Phaser.Math.Clamp(dragX, -40, 100);
+      mHandle.x = x;
+      const vol = (x + 40) / 140;
+      StatsBus.set('musicVol', vol);
+      mValue.setText(`${Math.round(vol * 100)}%`);
+      if (this.bgm) this.bgm.setVolume(vol);
+    });
+
+    // SFX
+    const sfxLabel = this.add.text(-170, -35, 'SFX', { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#9b7dff' });
+    const sTrack = this.add.rectangle(-40, -28, 140, 4, 0x443366).setOrigin(0, 0.5);
+    const sHandle = this.add.circle(-40 + (StatsBus.sfxVol * 140), -28, 8, 0x9b7dff).setInteractive({ draggable: true, useHandCursor: true });
+    const sValue = this.add.text(115, -35, `${Math.round(StatsBus.sfxVol * 100)}%`, { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#ffffff' });
+
+    sHandle.on('drag', (pointer, dragX) => {
+      const x = Phaser.Math.Clamp(dragX, -40, 100);
+      sHandle.x = x;
+      const vol = (x + 40) / 140;
+      StatsBus.set('sfxVol', vol);
+      sValue.setText(`${Math.round(vol * 100)}%`);
+    });
+
+    // Mute Global
+    const muteLabel = this.add.text(-170, 15, 'GLOBAL MUTE', { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#9b7dff' });
+    const muteToggle = this.add.text(40, 15, this.sound.mute ? '[ ON ]' : '[ OFF ]', { fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#ffffff' })
+      .setInteractive({ useHandCursor: true });
+    
+    muteToggle.on('pointerup', () => {
+      this.sound.mute = !this.sound.mute;
+      muteToggle.setText(this.sound.mute ? '[ ON ]' : '[ OFF ]');
+      StatsBus.set('muted', this.sound.mute);
+    });
+
+    // Return to Menu
+    const returnBtn = this.add.text(0, 75, '[ RETURN TO MENU ]', { fontFamily: "'Press Start 2P'", fontSize: '11px', color: '#ff4444' })
+      .setOrigin(0.5).setInteractive({ useHandCursor: true });
+    returnBtn.on('pointerup', () => {
+       if(this.bgm) this.bgm.stop();
+       this.scene.start('MenuScene');
+    });
+
+    const closeBtn = this.add.text(0, 135, '[ CLOSE ]', { fontFamily: "'Press Start 2P'", fontSize: '12px', color: '#cc99ff' })
+      .setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerup', () => this.settingsPanel.setVisible(false));
+
+    this.settingsPanel.add([
+      backdrop, panel, title, divider,
+      mLabel, mTrack, mHandle, mValue,
+      sfxLabel, sTrack, sHandle, sValue,
+      muteLabel, muteToggle, returnBtn, closeBtn
+    ]);
+  }
+
+  setupAudio() {
+    // Ensure cleanup of any orphan sounds
+    this.sound.stopAll();
+
+    this.bgm = this.sound.add('gameplay_music', { loop: true, volume: 0 });
+    
+    this.bgm.play();
+    this.tweens.add({
+      targets: this.bgm,
+      volume: 0.7,
+      duration: 3000
+    });
   }
 
   setupGameOverUI() {
@@ -196,6 +309,19 @@ export default class GameScene extends Phaser.Scene {
     this.events.on('gameover', () => {
       this.isGameOver = true;
       this.speedOverride = 0;
+
+      // Stop Music
+      if (this.bgm) {
+        this.tweens.add({
+          targets: this.bgm,
+          volume: 0,
+          duration: 1000,
+          onComplete: () => this.bgm.stop()
+        });
+      }
+
+      this.spawnTimer.remove();
+      this.gameOverGroup.setVisible(true);
       
       const newDeathCount = StatsBus.deathCount + 1;
       StatsBus.set('deathCount', newDeathCount);

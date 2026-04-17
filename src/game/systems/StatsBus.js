@@ -14,6 +14,8 @@ const StatsBus = {
   bossMaxHealth: 100,
   bossName: '',
   deathCount: parseInt(localStorage.getItem('lexicide_deaths') || '0'),
+  musicVol: parseFloat(localStorage.getItem('lexicide_music_vol') || '0.7'),
+  sfxVol: parseFloat(localStorage.getItem('lexicide_sfx_vol') || '0.7'),
   listeners: {},
 
   set(key, value) {
@@ -21,6 +23,12 @@ const StatsBus = {
     this[key] = value;
     if (key === 'deathCount') {
       localStorage.setItem('lexicide_deaths', value.toString());
+    }
+    if (key === 'musicVol') {
+      localStorage.setItem('lexicide_music_vol', value.toString());
+    }
+    if (key === 'sfxVol') {
+      localStorage.setItem('lexicide_sfx_vol', value.toString());
     }
     if (this.listeners[key]) {
       this.listeners[key].forEach(fn => fn(value));
