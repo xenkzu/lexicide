@@ -10,6 +10,7 @@ function createWindow() {
     width: 1280,
     height: 720,
     title: 'LEXICIDE',
+    icon: path.join(__dirname, '../assets/logo/icon.png'),
     resizable: true,
     fullscreenable: true,
     useContentSize: true,

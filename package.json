@@ -24,16 +24,19 @@
   "build": {
     "appId": "com.lexicide.app",
     "productName": "LEXICIDE",
+    "icon": "assets/logo/icon.png",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist-vite/**/*",
       "electron/**/*",
+      "assets/logo/icon.png",
       "package.json"
     ],
     "win": {
-      "target": "portable"
+      "target": "portable",
+      "icon": "assets/logo/icon.png"
     }
   }
 }
