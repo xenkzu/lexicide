@@ -13,11 +13,15 @@ const StatsBus = {
   bossHealth: 100,
   bossMaxHealth: 100,
   bossName: '',
+  deathCount: parseInt(localStorage.getItem('lexicide_deaths') || '0'),
   listeners: {},
 
   set(key, value) {
     if (this[key] === value) return;
     this[key] = value;
+    if (key === 'deathCount') {
+      localStorage.setItem('lexicide_deaths', value.toString());
+    }
     if (this.listeners[key]) {
       this.listeners[key].forEach(fn => fn(value));
     }

@@ -65,7 +65,15 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: "'Press Start 2P'", fontSize: '13px', color: '#ffffff' 
     }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
 
-    this.gameOverGroup.addMultiple([bg, title, restartTxt]);
+    this.deathMsgText = this.add.text(640, 370, '', { 
+      fontFamily: "'Press Start 2P'", fontSize: '24px', color: '#ffcc00', align: 'center', wordWrap: { width: 900 } 
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
+
+    this.deathCounterText = this.add.text(1250, 30, '', { 
+      fontFamily: "'Press Start 2P'", fontSize: '14px', color: '#ef4444' 
+    }).setOrigin(1, 0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
+
+    this.gameOverGroup.addMultiple([bg, title, restartTxt, this.deathMsgText, this.deathCounterText]);
   }
 
   setupAtmosphere() {
@@ -173,6 +181,33 @@ export default class GameScene extends Phaser.Scene {
     this.events.on('gameover', () => {
       this.isGameOver = true;
       this.speedOverride = 0;
+      
+      const newDeathCount = StatsBus.deathCount + 1;
+      StatsBus.set('deathCount', newDeathCount);
+
+      const deathMessages = [
+        "“It’s okay… happens once.”",
+        "“Already? Bold.”",
+        "“Third time’s the charm… right?”",
+        "“Not even trying now?”",
+        "“Tutorial was optional, bro.”",
+        "“Skill issue. Reinstall hands.”",
+        "“Enemies feel bad for you.”",
+        "“8 more = Participation Trophy.”",
+        "“Speedrunning failure.”",
+        "“TEN. Final boss of sucking.”"
+      ];
+
+      let msg = "";
+      if (newDeathCount <= 10) {
+        msg = deathMessages[newDeathCount - 1];
+      } else {
+        msg = "“Still here?”";
+      }
+
+      this.deathMsgText.setText(msg);
+      this.deathCounterText.setText(`Death #${newDeathCount}`);
+
       this.gameOverGroup.getChildren().forEach(c => c.setVisible(true));
       
       this.tweens.add({
@@ -196,12 +231,56 @@ export default class GameScene extends Phaser.Scene {
         onComplete: () => this.bossWarningText.destroy()
       });
 
-      // Overlay Crimson Tint (Vibrant but transparent)
+      // --- Intense effects WITHOUT red overlay ---
+
+      // 1. Rapid triple camera pulse shake
+      this.cameras.main.shake(300, 0.01);
+      this.time.delayedCall(400, () => this.cameras.main.shake(400, 0.015));
+      this.time.delayedCall(900, () => this.cameras.main.shake(600, 0.022));
+
+      // 2. Chromatic split flicker — cyan/magenta ghost frames
+      const chrR = this.add.rectangle(640, 360, 1280, 720, 0xff00ff, 0).setDepth(90).setBlendMode('ADD');
+      const chrC = this.add.rectangle(640, 360, 1280, 720, 0x00ffff, 0).setDepth(90).setBlendMode('ADD');
       this.tweens.add({
-        targets: this.vignetteOverlay,
-        alpha: 0.3,
-        duration: 2500,
-        onStart: () => { this.vignetteOverlay.setFillStyle(0x4a0000, 1); }
+        targets: [chrR, chrC],
+        alpha: { from: 0.06, to: 0 },
+        duration: 80,
+        yoyo: true,
+        repeat: 8,
+        onComplete: () => { chrR.destroy(); chrC.destroy(); }
+      });
+
+      // 3. Electric border arcs — persistent during boss fight
+      this.bossArcGraphics = this.add.graphics().setDepth(95);
+      this.bossArcTimer = this.time.addEvent({
+        delay: 80,
+        loop: true,
+        callback: () => {
+          if (!this.bossArcGraphics || !this.bossArcGraphics.active) return;
+          this.bossArcGraphics.clear();
+          // Draw 4-8 jagged arcs along screen edges
+          const edgeColors = [0xaa44ff, 0xcc88ff, 0xffffff, 0x8800ff];
+          for (let i = 0; i < 5; i++) {
+            const col = edgeColors[Math.floor(Math.random() * edgeColors.length)];
+            this.bossArcGraphics.lineStyle(1.5, col, 0.6 + Math.random() * 0.4);
+            // Pick a random edge (0=top,1=right,2=bottom,3=left)
+            const edge = Math.floor(Math.random() * 4);
+            const len = 60 + Math.random() * 120;
+            let sx, sy, ex, ey;
+            if (edge === 0) { sx = Math.random()*1280; sy = 0;   ex = sx + (Math.random()-0.5)*60; ey = len; }
+            else if (edge === 1) { sx = 1280; sy = Math.random()*720; ex = 1280-len; ey = sy + (Math.random()-0.5)*60; }
+            else if (edge === 2) { sx = Math.random()*1280; sy = 720;  ex = sx + (Math.random()-0.5)*60; ey = 720-len; }
+            else { sx = 0; sy = Math.random()*720; ex = len; ey = sy + (Math.random()-0.5)*60; }
+            // Jagged midpoint
+            const mx = (sx+ex)/2 + (Math.random()-0.5)*40;
+            const my = (sy+ey)/2 + (Math.random()-0.5)*40;
+            this.bossArcGraphics.beginPath();
+            this.bossArcGraphics.moveTo(sx, sy);
+            this.bossArcGraphics.lineTo(mx, my);
+            this.bossArcGraphics.lineTo(ex, ey);
+            this.bossArcGraphics.strokePath();
+          }
+        }
       });
     });
 
@@ -306,7 +385,9 @@ export default class GameScene extends Phaser.Scene {
         // Grant +50 streak bonus
         StatsBus.set('streak', StatsBus.streak + 50);
 
-        this.tweens.add({ targets: this.vignetteOverlay, alpha: 0, duration: 1000 });
+        // Clean up boss arc effects
+        if (this.bossArcTimer) { this.bossArcTimer.remove(); this.bossArcTimer = null; }
+        if (this.bossArcGraphics) { this.bossArcGraphics.destroy(); this.bossArcGraphics = null; }
       });
     });
   }
