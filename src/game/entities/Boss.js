@@ -12,7 +12,7 @@ export default class Boss extends Phaser.GameObjects.Image {
     this.health = 300;
     this.currentStage = 0;
     this.isAlive = true;
-    this.speed = 40;
+    this.speed = 30;
 
     const names = ["The Hollow Specter", "Wraith of the Void", "The Ashen Sovereign"];
     this.name = names[Math.floor(Math.random() * names.length)];
