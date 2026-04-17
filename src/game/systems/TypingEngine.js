@@ -34,11 +34,31 @@ class TypingEngine {
     this.lastActivityTime = 0;
   }
 
+  handleKeyDownBound = null;
+
   init(scene) {
     this.scene = scene;
     this.startTime = Date.now();
+    this.wordsCompleted = 0;
+    this.totalKeystrokes = 0;
+    this.correctKeystrokes = 0;
+    this.streak = 0;
+    
     this.nextWord();
-    window.addEventListener('keydown', (e) => this.handleKeyDown(e));
+
+    // Clean up old listener if exists
+    if (this.handleKeyDownBound) {
+      window.removeEventListener('keydown', this.handleKeyDownBound);
+    }
+
+    this.handleKeyDownBound = (e) => this.handleKeyDown(e);
+    window.addEventListener('keydown', this.handleKeyDownBound);
+  }
+
+  destroy() {
+    if (this.handleKeyDownBound) {
+      window.removeEventListener('keydown', this.handleKeyDownBound);
+    }
   }
 
   enterBossMode() {

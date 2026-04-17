@@ -61,9 +61,24 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: "'Press Start 2P'", fontSize: '48px', color: '#ff3333', fontStyle: 'bold' 
     }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
 
-    const restartTxt = this.add.text(640, 420, 'Press SPACE to Restart', { 
-      fontFamily: "'Press Start 2P'", fontSize: '13px', color: '#ffffff' 
-    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
+    this.playAgainBtn = this.add.text(640 - 160, 480, 'PLAY AGAIN', { 
+      fontFamily: "'Press Start 2P'", fontSize: '18px', color: '#ffffff' 
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false).setInteractive({ useHandCursor: true });
+
+    this.returnBtn = this.add.text(640 + 160, 480, 'RETURN', { 
+      fontFamily: "'Press Start 2P'", fontSize: '18px', color: '#9ca3af' 
+    }).setOrigin(0.5).setDepth(1001).setScrollFactor(0).setVisible(false).setInteractive({ useHandCursor: true });
+
+    this.playAgainBtn.on('pointerover', () => this.playAgainBtn.setColor('#4ade80').setScale(1.1));
+    this.playAgainBtn.on('pointerout', () => this.playAgainBtn.setColor('#ffffff').setScale(1));
+    this.playAgainBtn.on('pointerdown', () => window.location.reload());
+
+    this.returnBtn.on('pointerover', () => this.returnBtn.setColor('#ffffff').setScale(1.1));
+    this.returnBtn.on('pointerout', () => this.returnBtn.setColor('#9ca3af').setScale(1));
+    this.returnBtn.on('pointerdown', () => {
+      TypingEngine.destroy();
+      this.scene.start('MenuScene');
+    });
 
     this.deathMsgText = this.add.text(640, 370, '', { 
       fontFamily: "'Press Start 2P'", fontSize: '24px', color: '#ffcc00', align: 'center', wordWrap: { width: 900 } 
@@ -73,7 +88,7 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: "'Press Start 2P'", fontSize: '14px', color: '#ef4444' 
     }).setOrigin(1, 0.5).setDepth(1001).setScrollFactor(0).setVisible(false);
 
-    this.gameOverGroup.addMultiple([bg, title, restartTxt, this.deathMsgText, this.deathCounterText]);
+    this.gameOverGroup.addMultiple([bg, title, this.playAgainBtn, this.returnBtn, this.deathMsgText, this.deathCounterText]);
   }
 
   setupAtmosphere() {
@@ -184,6 +199,12 @@ export default class GameScene extends Phaser.Scene {
       
       const newDeathCount = StatsBus.deathCount + 1;
       StatsBus.set('deathCount', newDeathCount);
+
+      // Best WPM highscore
+      const currentBest = parseInt(localStorage.getItem('lexicide_best_wpm') || '0');
+      if (StatsBus.wpm > currentBest) {
+        localStorage.setItem('lexicide_best_wpm', StatsBus.wpm.toString());
+      }
 
       const deathMessages = [
         "“It’s okay… happens once.”",
@@ -409,10 +430,6 @@ export default class GameScene extends Phaser.Scene {
 
   update(time, delta) {
     if (this.isGameOver) {
-      const spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-      if (spaceKey.isDown) {
-        window.location.reload();
-      }
       return;
     }
 

@@ -18,6 +18,10 @@ export default class MenuScene extends Phaser.Scene {
     this.buildStarfield();
     this.buildTitle();
     this.buildButtons();
+    this.buildHighscore();
+    this.buildInfoButton();
+    this.buildSocialLinks();
+    this.buildBorderFlourishes();
     this.buildSettingsOverlay();
     this.buildVersion();
     this.buildScanlines();
@@ -97,6 +101,47 @@ export default class MenuScene extends Phaser.Scene {
   buildTitle() {
     const fontFamily = "'Press Start 2P'";
 
+    // --- RANDOM TAGLINE SYSTEM ---
+    const taglines = [
+      "Type faster genius the game is judging you",
+      "Congratulations your typing speed is still disappointing",
+      "Wow such skill much survive",
+      "Keep typing maybe one day you'll be average",
+      "The keyboard is free but your dignity isn't",
+      "Impressive you managed to type that wrong too",
+      "Only virgins type slow",
+      "Real chads type 100+ wpm",
+      "Skill issue detected keep coping",
+      "Touch keyboard you casual",
+      "Beta males can't survive this",
+      "Git gud or uninstall",
+      "Type faster the government is watching",
+      "Leftists can't type under pressure",
+      "This game is rigged against conservatives",
+      "Type to own the libs",
+      "Survive the deep state with your keyboard",
+      "Big Tech is slowing your typing right now",
+      "Type or humanity goes extinct tonight",
+      "The final keystroke decides your fate",
+      "One mistake and the world burns",
+      "Your fingers are the last hope of mankind",
+      "Type like the apocalypse is at your door",
+      "Every letter you miss brings eternal darkness",
+      "Your ancestors are ashamed of your wpm",
+      "Even your mom types faster than you",
+      "The void is calling your name",
+      "Death by autocorrect incoming",
+      "Type before your crush sees your speed"
+    ];
+
+    const lastTagline = localStorage.getItem('lexicide_last_tagline');
+    let availableTaglines = taglines.filter(t => t !== lastTagline);
+    if (availableTaglines.length === 0) availableTaglines = taglines; // Fail-safe
+
+    const pickedTagline = Phaser.Utils.Array.GetRandom(availableTaglines);
+    localStorage.setItem('lexicide_last_tagline', pickedTagline);
+    const finalTaglineTxt = pickedTagline.toUpperCase();
+
     // Drop shadow layer
     this.add.text(643, 203, 'LEXICIDE', {
       fontFamily,
@@ -142,16 +187,16 @@ export default class MenuScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     });
 
-    // Tagline
-    const subtitle = this.add.text(640, 285, 'TYPE TO SURVIVE', {
+    // Tagline - Randomized
+    const subtitle = this.add.text(640, 285, finalTaglineTxt, {
       fontFamily,
-      fontSize: '13px',
+      fontSize: '14px',
       color: '#9b7dff'
-    }).setOrigin(0.5).setDepth(10).setAlpha(0.9);
+    }).setOrigin(0.5).setDepth(10).setAlpha(1.0);
 
     this.tweens.add({
       targets: subtitle,
-      alpha: { from: 0.9, to: 0.2 },
+      alpha: { from: 1.0, to: 0.3 },
       duration: 800,
       yoyo: true,
       repeat: -1,
@@ -180,12 +225,12 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   _buildPlayButton() {
-    const x = 640, y = 390, w = 220, h = 58;
+    const x = 640, y = 390, w = 240, h = 60;
     const FILL_NORMAL = 0x1a0044;
-    const FILL_HOVER  = 0x2d0066;
-    const FILL_DOWN   = 0x0d0022;
+    const FILL_HOVER = 0x2d0066;
+    const FILL_DOWN = 0x0d0022;
     const STROKE_NORMAL = 0x9b7dff;
-    const STROKE_HOVER  = 0xcc99ff;
+    const STROKE_HOVER = 0xcc99ff;
 
     const container = this.add.container(x, y).setDepth(10);
 
@@ -245,10 +290,10 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   _buildSettingsButton() {
-    const x = 860, y = 390, w = 180, h = 58;
-    const FILL_NORMAL   = 0x0a001a;
+    const x = 920, y = 390, w = 200, h = 60;
+    const FILL_NORMAL = 0x0a001a;
     const STROKE_NORMAL = 0x554488;
-    const STROKE_HOVER  = 0x9b7dff;
+    const STROKE_HOVER = 0x9b7dff;
 
     const container = this.add.container(x, y).setDepth(10);
 
@@ -300,10 +345,10 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   _buildMuteButton() {
-    const x = 420, y = 390, w = 140, h = 58;
-    const FILL_NORMAL     = 0x0a001a;
-    const STROKE_UNMUTED  = 0x554488;
-    const STROKE_MUTED    = 0x880000;
+    const x = 360, y = 390, w = 200, h = 60;
+    const FILL_NORMAL = 0x0a001a;
+    const STROKE_UNMUTED = 0x554488;
+    const STROKE_MUTED = 0x880000;
 
     const container = this.add.container(x, y).setDepth(10);
 
@@ -341,7 +386,7 @@ export default class MenuScene extends Phaser.Scene {
       drawBg(FILL_NORMAL, s, 2);
       container.setScale(1);
     });
-    hitZone.on('pointerdown', () => {});
+    hitZone.on('pointerdown', () => { });
     hitZone.on('pointerup', () => {
       this.isMuted = !this.isMuted;
       const s = this.isMuted ? STROKE_MUTED : STROKE_UNMUTED;
@@ -451,17 +496,120 @@ export default class MenuScene extends Phaser.Scene {
   // ─── Version Text ──────────────────────────────────────────────────────────
 
   buildVersion() {
-    this.add.text(20, 705, 'v0.1.0', {
+    this.add.text(80, 685, 'v0.69.0', {
       fontFamily: "'Press Start 2P'",
       fontSize: '9px',
       color: '#443366'
-    }).setOrigin(0, 1).setDepth(10).setAlpha(0.7);
+    }).setOrigin(0, 1).setDepth(10).setAlpha(0.8);
 
-    this.add.text(1260, 705, 'MADE WITH CLAUDE + CURSOR', {
+    this.add.text(1200, 685, 'Made by xenkzu,saksham,hershit', {
       fontFamily: "'Press Start 2P'",
       fontSize: '9px',
       color: '#443366'
-    }).setOrigin(1, 1).setDepth(10).setAlpha(0.7);
+    }).setOrigin(1, 1).setDepth(10).setAlpha(0.8);
+  }
+
+  // ─── Extra Home Screen Elements ───────────────────────────────────────────
+
+  buildBorderFlourishes() {
+    const corners = [
+      { x: 30, y: 30, rot: 0 },
+      { x: 1250, y: 30, rot: 90 },
+      { x: 1250, y: 690, rot: 180 },
+      { x: 30, y: 690, rot: 270 }
+    ];
+
+    corners.forEach(c => {
+      const g = this.add.graphics({ x: c.x, y: c.y }).setDepth(15).setAlpha(0.4);
+      g.setAngle(c.rot);
+      g.lineStyle(2, 0x9b7dff, 1);
+      g.beginPath();
+      g.moveTo(0, 20);
+      g.lineTo(0, 0);
+      g.lineTo(20, 0);
+      g.strokePath();
+
+      this.tweens.add({
+        targets: g,
+        alpha: { from: 0.2, to: 0.6 },
+        duration: 2000,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    });
+  }
+
+  buildInfoButton() {
+    const btnX = 1240, btnY = 40;
+    const container = this.add.container(btnX, btnY).setDepth(100);
+
+    const bg = this.add.circle(0, 0, 18, 0x1a0044).setStrokeStyle(2, 0x9b7dff);
+    const label = this.add.text(0, 0, 'i', {
+      fontFamily: "'Press Start 2P'", fontSize: '16px', color: '#ffffff'
+    }).setOrigin(0.5);
+
+    container.add([bg, label]);
+    bg.setInteractive({ useHandCursor: true });
+
+    // Tooltip / Panel
+    const infoPanel = this.add.container(-250, 40).setVisible(false);
+    const pBg = this.add.rectangle(0, 0, 260, 150, 0x000000, 0.9).setOrigin(0, 0).setStrokeStyle(1, 0x9b7dff);
+    const pTitle = this.add.text(130, 25, 'HOW TO SURVIVE', {
+      fontFamily: "'Press Start 2P'", fontSize: '10px', color: '#cc99ff'
+    }).setOrigin(0.5);
+    const pText = this.add.text(15, 50, [
+      '• TYPE words to fire',
+      '• COMBO for multi-shot',
+      '• KILL to summon BOSS',
+      '• DON\'T LET THEM TOUCH'
+    ].join('\n\n'), {
+      fontFamily: "'Press Start 2P'", fontSize: '8px', color: '#9ca3af', lineHeight: 18
+    });
+    infoPanel.add([pBg, pTitle, pText]);
+    container.add(infoPanel);
+
+    bg.on('pointerover', () => {
+      bg.setFillStyle(0x2d0066);
+      infoPanel.setVisible(true);
+    });
+    bg.on('pointerout', () => {
+      bg.setFillStyle(0x1a0044);
+      infoPanel.setVisible(false);
+    });
+  }
+
+  buildHighscore() {
+    const bestWpm = localStorage.getItem('lexicide_best_wpm') || '0';
+    const totalDeaths = localStorage.getItem('lexicide_deaths') || '0';
+
+    this.add.text(640, 470, `PERSONAL BEST: ${bestWpm} WPM`, {
+      fontFamily: "'Press Start 2P'", fontSize: '11px', color: '#4ade80'
+    }).setOrigin(0.5).setDepth(10);
+
+    this.add.text(640, 495, `TOTAL DEATHS: ${totalDeaths}`, {
+      fontFamily: "'Press Start 2P'", fontSize: '9px', color: '#9ca3af'
+    }).setOrigin(0.5).setDepth(10);
+  }
+
+  buildSocialLinks() {
+    const container = this.add.container(640, 640).setDepth(10);
+
+    const links = [
+      { text: 'GITHUB', color: '#ffffff' },
+      { text: 'DISCORD', color: '#7289da' },
+      { text: 'WIKI', color: '#ffcc00' }
+    ];
+
+    links.forEach((link, i) => {
+      const x = (i - 1) * 160;
+      const t = this.add.text(x, 0, `[ ${link.text} ]`, {
+        fontFamily: "'Press Start 2P'", fontSize: '10px', color: link.color
+      }).setOrigin(0.5).setAlpha(0.6).setInteractive({ useHandCursor: true });
+
+      t.on('pointerover', () => t.setAlpha(1).setScale(1.1));
+      t.on('pointerout', () => t.setAlpha(0.6).setScale(1));
+    });
   }
 
   // ─── Keyboard ──────────────────────────────────────────────────────────────
@@ -482,9 +630,9 @@ export default class MenuScene extends Phaser.Scene {
 
   scrollBackground(delta) {
     this.bgLayer0.tilePositionX += 20 * 0.005 * (delta / 1000);
-    this.bgLayer1.tilePositionX += 20 * 0.02  * (delta / 1000);
-    this.bgLayer2.tilePositionX += 20 * 0.08  * (delta / 1000);
-    this.bgLayer3.tilePositionX += 20 * 0.18  * (delta / 1000);
+    this.bgLayer1.tilePositionX += 20 * 0.02 * (delta / 1000);
+    this.bgLayer2.tilePositionX += 20 * 0.08 * (delta / 1000);
+    this.bgLayer3.tilePositionX += 20 * 0.18 * (delta / 1000);
   }
 
   // ─── Start Game ────────────────────────────────────────────────────────────
