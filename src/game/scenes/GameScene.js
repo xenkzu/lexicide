@@ -158,12 +158,14 @@ export default class GameScene extends Phaser.Scene {
 
     this.bgm = this.sound.add('gameplay_music', { loop: true, volume: 0 });
     
-    this.bgm.play();
-    this.tweens.add({
-      targets: this.bgm,
-      volume: StatsBus.musicVol,
-      duration: 3000
-    });
+    if (this.bgm) {
+      this.bgm.play();
+      this.tweens.add({
+        targets: this.bgm,
+        volume: StatsBus.musicVol,
+        duration: 3000
+      });
+    }
   }
 
   setupGameOverUI() {

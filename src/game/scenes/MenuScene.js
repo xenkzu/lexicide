@@ -20,17 +20,19 @@ export default class MenuScene extends Phaser.Scene {
     this.buildButtons();
     this.buildHighscore();
     this.buildInfoButton();
+    this.buildExitButton();
     this.buildSocialLinks();
     this.buildBorderFlourishes();
     this.buildSettingsOverlay();
+    this.buildExitConfirmation();
     this.buildVersion();
     this.buildScanlines();
     this.setupKeyboard();
 
     if (!StatsBus.muted && !StatsBus.introPlayed) {
-      this.sound.play('launch_sfx', { volume: StatsBus.sfxVol });
-      this.menuMusic = this.sound.add('menu_music', { loop: true, volume: 0 });
-      this.menuMusic.play();
+      this.sound?.play('launch_sfx', { volume: StatsBus.sfxVol });
+      this.menuMusic = this.sound?.add('menu_music', { loop: true, volume: 0 });
+      this.menuMusic?.play();
       this.tweens.add({
         targets: this.menuMusic,
         volume: StatsBus.musicVol,
@@ -38,8 +40,8 @@ export default class MenuScene extends Phaser.Scene {
       });
     } else if (!StatsBus.muted) {
        // Just start music normally if no intro
-       this.menuMusic = this.sound.add('menu_music', { loop: true, volume: StatsBus.musicVol });
-       this.menuMusic.play();
+       this.menuMusic = this.sound?.add('menu_music', { loop: true, volume: StatsBus.musicVol });
+       this.menuMusic?.play();
     }
   }
 
@@ -772,5 +774,79 @@ export default class MenuScene extends Phaser.Scene {
       ease: 'Sine.easeIn',
       onComplete: () => this.scene.start('GameScene')
     });
+  }
+
+  buildExitButton() {
+    const btnX = 1240, btnY = 90;
+    const container = this.add.container(btnX, btnY).setDepth(100);
+
+    const bg = this.add.circle(0, 0, 18, 0x1a0044).setStrokeStyle(2, 0x9b7dff);
+    
+    // Draw an "X" icon using Graphics
+    const icon = this.add.graphics();
+    icon.lineStyle(3, 0xffffff, 1);
+    icon.lineBetween(-7, -7, 7, 7);
+    icon.lineBetween(7, -7, -7, 7);
+    
+    container.add([bg, icon]);
+    bg.setInteractive({ useHandCursor: true });
+
+    bg.on('pointerover', () => {
+      bg.setFillStyle(0x880000);
+      container.setScale(1.1);
+    });
+    bg.on('pointerout', () => {
+      bg.setFillStyle(0x1a0044);
+      container.setScale(1);
+    });
+    bg.on('pointerup', () => {
+      this.exitConfirmPanel.setVisible(true);
+    });
+  }
+
+  buildExitConfirmation() {
+    this.exitConfirmPanel = this.add.container(640, 360).setDepth(500).setVisible(false);
+
+    const backdrop = this.add.rectangle(0, 0, 1280, 720, 0x000000, 0.85).setInteractive();
+
+    const panel = this.add.graphics();
+    panel.lineStyle(2, 0xff4444, 1);
+    panel.fillStyle(0x0d0022, 0.97);
+    panel.fillRoundedRect(-250, -100, 500, 200, 8);
+    panel.strokeRoundedRect(-250, -100, 500, 200, 8);
+
+    const question = this.add.text(0, -40, 'YOU SURE WANNA LEAVE?', {
+      fontFamily: "'Press Start 2P'",
+      fontSize: '16px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+
+    // YES BUTTON
+    const yesBtn = this.add.text(-100, 40, '[ YES ]', {
+      fontFamily: "'Press Start 2P'",
+      fontSize: '18px',
+      color: '#ff4444'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    yesBtn.on('pointerover', () => yesBtn.setColor('#ffffff').setScale(1.1));
+    yesBtn.on('pointerout', () => yesBtn.setColor('#ff4444').setScale(1));
+    yesBtn.on('pointerup', () => {
+      window.electronAPI?.quitApp();
+    });
+
+    // NO BUTTON
+    const noBtn = this.add.text(100, 40, '[ NO ]', {
+      fontFamily: "'Press Start 2P'",
+      fontSize: '18px',
+      color: '#4ade80'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    noBtn.on('pointerover', () => noBtn.setColor('#ffffff').setScale(1.1));
+    noBtn.on('pointerout', () => noBtn.setColor('#4ade80').setScale(1));
+    noBtn.on('pointerup', () => {
+      this.exitConfirmPanel.setVisible(false);
+    });
+
+    this.exitConfirmPanel.add([backdrop, panel, question, yesBtn, noBtn]);
   }
 }

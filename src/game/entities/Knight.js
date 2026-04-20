@@ -82,7 +82,9 @@ export default class Knight {
     this.updateHealthBar();
 
     // Play damage sound
-    this.scene.sound.play('knight_damage', { volume: StatsBus.sfxVol });
+    if (this.scene && this.scene.sound) {
+      this.scene.sound.play('knight_damage', { volume: StatsBus.sfxVol });
+    }
 
     // Flash red
     this.scene.tweens.add({

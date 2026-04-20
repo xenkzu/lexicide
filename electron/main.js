@@ -44,6 +44,10 @@ ipcMain.handle('is-fullscreen', () => {
   return mainWindow ? mainWindow.isFullScreen() : false;
 });
 
+ipcMain.on('quit-app', () => {
+  app.quit();
+});
+
 app.whenReady().then(() => {
   createWindow();
 

@@ -141,6 +141,7 @@ vite.config.ts.timestamp-*
 # Project Build Outputs
 dist-vite/
 release/
+upload/
 dist_old/
 out/
 bin/

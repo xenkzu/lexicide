@@ -130,8 +130,9 @@ export default class Fireball extends Phaser.GameObjects.Container {
     });
 
     if (actualTarget && actualTarget.active && actualTarget.isAlive) {
-        // Play impact sound
-        this.scene.sound.play('impact_sfx', { volume: StatsBus.sfxVol });
+        if (this.scene && this.scene.sound) {
+            this.scene.sound.play('impact_sfx', { volume: StatsBus.sfxVol });
+        }
         
         actualTarget.takeDamage(this.damage);
         this.scene.showDamageNumber(actualTarget.x, actualTarget.y, this.damage, this.multiplier);

@@ -1,77 +1,88 @@
-# Lexicide
+# Lexicide: A Gothic Typing Action Odyssey
 
-Lexicide is a high-performance, gothic-themed action game built with Electron, Phaser 3, and Vite. The core mechanic integrates high-speed typing with side-scrolling combat, where performance metrics directly influence gameplay intensity and character power.
+![Version](https://img.shields.io/badge/Version-0.1.0--alpha-blue)
+![Engine](https://img.shields.io/badge/Engine-Phaser--3.80-orange)
+![Platform](https://img.shields.io/badge/Platform-Electron--29-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-blueviolet)
 
-## Overview
+---
 
-Lexicide focuses on rhythmic, high-accuracy typing within a dark, atmospheric environment. The system utilizes a custom typing engine to calculate word-per-minute (WPM) and accuracy metrics in real-time. These metrics drive the player's movement speed, combat effectiveness, and progress through a procedurally scaling level system.
+Lexicide is a high-performance desktop game that merges the rhythmic precision of typing with the dark, atmospheric intensity of a gothic side-scroller. Your keyboard is your weapon; every character you type drives your character forward and fuels your attacks. Built with a modern architecture, Lexicide is designed for low-latency input and fluid visual storytelling.
 
-## Technical Architecture
+## Play Lexicide Now
 
-The application is built on a modern JavaScript stack designed for low-latency input and fluid rendering:
+The simplest way to experience Lexicide is by using the pre-compiled standalone executable or playing the demo online.
 
-*   **Engine**: Phaser 3 for canvas-based rendering and game loop management.
-*   **Platform**: Electron for cross-platform desktop distribution.
-*   **Build System**: Vite for optimized hot module replacement (HMR) and production bundling.
-*   **State Management**: A reactive global event bus (StatsBus) that synchronizes the Typing Engine, Entity systems, and UI.
+*   **Play on itch.io:** Visit the [Lexicide itch.io page](https://xenkzu.itch.io/lexicide) to play the demo or download the game.
+*   **No installation required:** Simply run the file and start your descent into the gothic ruins.
 
-## Core Systems
+---
 
-### Typing Engine
-A specialized input handler that monitors keystrokes to calculate normative WPM and accuracy. It supports dynamic word prompts with real-time visual feedback, including character-level highlighting and error state animations.
+## Gameplay and Mechanics
 
-### Dynamic Parallax Environment
-A multi-layered parallax system with 5+ layers of depth, featuring programmatically generated assets. The backdrop includes deep space starfields, distant gothic architecture, and foreground silhouettes that scale in velocity based on player performance.
+In Lexicide, performance translates directly into power. The game monitors your typing metrics in real-time to calculate your impact on the world.
 
-### Combat and Progression
-*   **Entity Mechanics**: Custom animated entities (Knight and Enemies) with state-driven behaviors.
-*   **Boss Encounters**: Periodic high-intensity encounters featuring multi-stage health mechanics and phrase-based typing challenges.
-*   **Scaling Difficulty**: A procedural level manager that increases enemy health, spawn density, and movement velocity as distance increases.
+*   **Typing-Driven Combat:** Every word you correctly type triggers character actions. Your Word-Per-Minute (WPM) affects your movement speed and attack frequency.
+*   **Accuracy Modifiers:** Precision is rewarded. Maintaining high accuracy provides significant damage multipliers, allowing you to dispatch enemies more efficiently.
+*   **Procedural Atmosphere:** Journey through a world featuring a dynamic 5-layer parallax system. The environment reacts to your progress, with background elements shifting and scaling based on your performance.
+*   **Scaling Difficulty:** As you travel further, the game dynamically increases the challenge. Enemy density and health scale procedurally, ensuring a consistent testing of your typing speed.
 
-## Installation and Development
+## Technical Core
 
-Ensure you have Node.js installed on your system before proceeding.
+Lexicide is built on a robust stack designed for responsiveness and scalability.
 
-### Setup
-```bash
-npm install
-```
+*   **Renderer:** Phaser 3 manages the game loop and canvas-based rendering for high-performance visuals.
+*   **Platform:** Electron provides a native desktop experience with cross-platform compatibility.
+*   **Build System:** Vite ensures rapid development cycles and highly optimized production bundles.
+*   **State Management:** A custom reactive event bus synchronizes the typing engine with the combat and animation systems.
 
-### Development
-Launch the application in development mode with HMR:
-```bash
-npm run electron:dev
-```
+---
 
-### Production
-Generate an optimized production bundle:
-```bash
-npm run electron:build
-```
+## Building from Source
+
+For developers or those interested in running the game from the source code, follow these standard steps to set up your local environment.
+
+### Prerequisites
+
+You will need [Node.js](https://nodejs.org/) installed on your machine to manage dependencies and run the build scripts.
+
+### Setup and Development
+
+1.  **Clone the Repository**
+    ```bash
+    git clone https://github.com/xenkzu/lexicide.git
+    cd lexicide
+    ```
+
+2.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
+
+3.  **Launch the Development Environment**
+    Run the following command to start the game with Hot Module Replacement (HMR):
+    ```bash
+    npm run electron:dev
+    ```
+
+4.  **Create a Production Build**
+    To package the application for distribution:
+    ```bash
+    npm run electron:build
+    ```
+
+---
 
 ## Project Structure
 
-```text
-lexicide/
-├── assets/             # Spritesheets and static media
-├── electron/           # Main and preload processes
-├── src/                # Application source code
-│   ├── game/           # Core game logic
-│   │   ├── entities/   # NPC and Player classes
-│   │   ├── scenes/     # Boot and Gameplay scenes
-│   │   ├── systems/    # Engine, State, and Level management
-│   │   └── config.js   # Phaser configuration
-│   └── main.js         # Entry point
-└── vite.config.js      # Build configuration
-```
+*   **/assets:** Contains all static media, including spritesheets, fonts, and audio files.
+*   **/electron:** Houses the main process and preload logic for the desktop environment.
+*   **/src/game:** The core engine, featuring the typing logic, scene management, and entity systems.
+*   **vite.config.js:** Configuration for the fast, modern build pipeline.
 
-## Current Status and Roadmap
+## License
 
-Lexicide is currently in active development.
+This project is open-source and available under the terms of the [MIT License](LICENSE).
 
-*   [x] Core Typing and Combat Engine
-*   [x] Procedural Atmosphere and Parallax System
-*   [x] Cinematic Boss Encounters
-*   [ ] External Audio Integration
-*   [ ] Persistent Statistics and Meta-progression
-*   [ ] Advanced UI and Main Menu system
+---
+Developed by the Lexicide Team.
